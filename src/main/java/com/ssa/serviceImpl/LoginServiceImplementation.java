@@ -41,8 +41,7 @@ public class LoginServiceImplementation implements UserService {
         user.setUserEmail(request.getEmail());
         user.setUserName(request.getName());
         user.setUserPassword(request.getPassword());
-        user.setUserDob(request.getDob());
-        user.setUserAge(request.getAge());
+        user.setName(request.getName());
         userRepository.save(user);
 
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), USER_CREATED));
