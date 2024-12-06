@@ -37,5 +37,4 @@ public abstract class BaseModel {
     @Column(name = "is_active")
     public Integer isActive;
 
-
 }

@@ -1,5 +1,7 @@
 package com.ssa.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -12,18 +14,14 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Likes extends BaseModel{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
-    private Post post;
+    @JsonBackReference
+    private Post postId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "liked_by")
-    private User likedBy;
-
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    private User userId;
 
 }

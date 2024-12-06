@@ -1,5 +1,6 @@
 package com.ssa.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.ssa.constant.Constants;
@@ -20,11 +21,6 @@ import java.util.List;
 @AllArgsConstructor
 public class User extends BaseModel{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    public Long id;
-
     @Column(name = "user_email")
     public String userEmail;
 
@@ -37,8 +33,10 @@ public class User extends BaseModel{
     @Column(name = "name")
     public String name;
 
-    @OneToMany(mappedBy = "user")
-    private List<ForgetPassword> forgetPassword;
+    @OneToMany(mappedBy = "userId", fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @JsonManagedReference
+    private List<Post> post;
+
 
 
 }

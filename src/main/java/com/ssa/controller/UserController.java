@@ -3,6 +3,7 @@ package com.ssa.controller;
 import com.ssa.request.UserRequest;
 import com.ssa.response.ApiResponse;
 import com.ssa.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class UserController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<Object>> createUser(@RequestBody UserRequest request) {
+    public ResponseEntity<ApiResponse<Object>> createUser(@Valid  @RequestBody UserRequest request) {
         return loginService.createUser(request);
     }
 
