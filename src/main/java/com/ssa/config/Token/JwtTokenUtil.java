@@ -1,4 +1,4 @@
-package com.ssa.config.Logging;
+package com.ssa.config.Token;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
