@@ -1,6 +1,7 @@
 package com.ssa.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.ssa.constant.Constants;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,6 +36,6 @@ public abstract class BaseModel {
     public LocalDateTime deletedAt;
 
     @Column(name = "is_active")
-    public Integer isActive;
+    public Integer isActive= Constants.IS_DELETED;
 
 }

@@ -1,6 +1,6 @@
 package com.ssa.controller;
 
-import com.ssa.config.Logging.JwtTokenUtil;
+import com.ssa.config.Token.JwtTokenUtil;
 import com.ssa.request.AuthRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

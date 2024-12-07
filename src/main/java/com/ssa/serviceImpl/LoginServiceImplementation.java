@@ -4,6 +4,7 @@ import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
 import com.ssa.model.User;
 import com.ssa.repository.UserRepository;
+import com.ssa.request.LoginRequest;
 import com.ssa.request.UserRequest;
 import com.ssa.response.ApiResponse;
 import com.ssa.service.UserService;
@@ -30,16 +31,22 @@ public class LoginServiceImplementation implements UserService {
     @Autowired
     EmailService emailService;
 
+    BCryptPasswordEncoder bCryptPE = new BCryptPasswordEncoder() ;
+
     @Override
-    public ResponseEntity<ApiResponse<Object>> getLoginDetails(UserRequest request) {
+    public ResponseEntity<ApiResponse<Object>> getLoginDetails(LoginRequest request) {
 
-        User user = userRepository.findByUserEmailAndUserPassword(request.getEmail(), request.getPassword()).orElseThrow(() -> new DataNotFoundException("Invalid User"));
-        if (user != null) {
-            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), VALID_USER));
+        User user = userRepository.findByUserEmail(request.getEmail())
+                .orElseThrow(() -> new DataNotFoundException("Invalid User"));
+
+        boolean passwordMatches = bCryptPE.matches(request.getPassword(), user.getUserPassword());
+        if (!passwordMatches) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    StatusConstants.invalid(), "Invalid email or password."));
         }
-
-        return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), INVALID_USER));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Valid User"));
     }
+
 
     @Override
     public ResponseEntity<ApiResponse<Object>> createUser(UserRequest request) {
@@ -56,7 +63,7 @@ public class LoginServiceImplementation implements UserService {
         user.setName(request.getName());
         user.setUserName(request.getUserName());
         user.setUserEmail(request.getEmail());
-        user.setUserPassword(new BCryptPasswordEncoder().encode(request.getPassword()));
+        user.setUserPassword(bCryptPE.encode(request.getPassword()));
         user.setIsActive(request.getIsActive() != null ? request.getIsActive() : 1);
 
         userRepository.save(user);
@@ -68,6 +75,5 @@ public class LoginServiceImplementation implements UserService {
         return ResponseEntity.ok(new ApiResponse<>(
                 StatusConstants.success(), USER_CREATED_SUCCESSFULLY_A_WELCOME_EMAIL_HAS_BEEN_SENT));
     }
-
 
 }

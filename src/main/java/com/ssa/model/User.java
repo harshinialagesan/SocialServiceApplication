@@ -37,6 +37,4 @@ public class User extends BaseModel{
     @JsonManagedReference
     private List<Post> post;
 
-
-
 }
