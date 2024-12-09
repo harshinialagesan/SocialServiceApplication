@@ -12,6 +12,7 @@ import com.ssa.repository.UserRepository;
 import com.ssa.request.PostRequest;
 import com.ssa.response.ApiResponse;
 import com.ssa.response.GetAllPostResponse;
+import com.ssa.response.PagedResponse;
 import com.ssa.response.PostResponse;
 import com.ssa.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +36,7 @@ public class PostServiceImplementation implements PostService {
     public static final String POST_IS_DELETED_SUCCESSFULLY = "Post is deleted successfully";
     public static final String POST_NOT_FOUND = "Post not found";
     public static final String USER_NOT_FOUND1 = USER_NOT_FOUND;
+    public static final String POST_UPDATED_SUCCESSFULLY = "Post Updated Successfully";
     @Autowired
     UserRepository userRepository;
     @Autowired
@@ -54,43 +57,46 @@ public class PostServiceImplementation implements PostService {
             return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Description is required."));
         }
 
+
         User user1 = user.get();
         Post post = new Post();
         post.setTitle(request.getTitle());
         post.setDescription(request.getDescription());
         post.setUserId(user1);
+        post.setIsActive(Constants.IS_ACTIVE);
         List<String> tagNames = request.getTagName();
         List<Tag> tags = new ArrayList<>();
+        if (tagNames != null && !tagNames.isEmpty()) {
+            for (String tagName : tagNames) {
+                tagName = tagName.trim();
 
-        for (String tagName : tagNames) {
-            tagName = tagName.trim();
-
-            String[] parts = tagName.split("#");
-            for (int i = 1; i < parts.length; i++) {
-                String part = parts[i].trim();
-                if (part.isEmpty()) {
-                    return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should have a name after '#' "));
+                String[] parts = tagName.split("#");
+                for (int i = 1; i < parts.length; i++) {
+                    String part = parts[i].trim();
+                    if (part.isEmpty()) {
+                        return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should have a name after '#' "));
+                    }
+                    tagName = "#" + part;
                 }
-                tagName = "#" + part;
-            }
 
-            if (!tagName.startsWith("#") || tagName.length() < 2) {
-                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should start with '#' and be at least 2 characters long."));
+                if (!tagName.startsWith("#") || tagName.length() < 2) {
+                    return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should start with '#' and be at least 2 characters long."));
+                }
+                Tag tag = tagRepository.findByName(tagName).orElse(null);
+                if (tag == null) {
+                    tag = new Tag();
+                    tag.setName(tagName);
+                    tag.setUserid(user1);
+                    tag = tagRepository.save(tag);
+                }
+                tags.add(tag);
             }
-            Tag tag = tagRepository.findByName(tagName).orElse(null);
-            if (tag == null) {
-                tag = new Tag();
-                tag.setName(tagName);
-                tag.setUserid(user1);
-                tag = tagRepository.save(tag);
-            }
-            tags.add(tag);
+            post.setTags(tags);
         }
-        post.setTags(tags);
-        post = postRepository.save(post);
-        PostResponse response = mapPostToResponse(post);
+        postRepository.save(post);
 
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), response));
+
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Post Created Successfully"));
     }
 
     @Override
@@ -154,10 +160,10 @@ public class PostServiceImplementation implements PostService {
             }
         }
         post.getTags().addAll(newTags);
-        post = postRepository.save(post);
-        PostResponse response = mapPostToResponse(post);
+        postRepository.save(post);
+//        PostResponse response = mapPostToResponse(post);
 
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), response));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_UPDATED_SUCCESSFULLY));
     }
 
     @Override
@@ -181,27 +187,84 @@ public class PostServiceImplementation implements PostService {
     }
 
     @Override
-    public ApiResponse<List<GetAllPostResponse>> getAllPosts(int page, int size, String sortBy, String tags) {
+    public ApiResponse<PagedResponse<GetAllPostResponse>> getAllPosts(int page, int size, String sortBy, String tags) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "createdAt" : sortBy));
-        Page<Post> posts;
+        Specification<Post> activeSpecification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("isActive"), 1);
 
+        Specification<Post> tagSpecification = null;
         if (tags != null && !tags.isEmpty()) {
             List<Long> tagIds = new ArrayList<>();
             for (String tagName : tags.split(",")) {
-                Tag tag = tagRepository.findByName(tagName.trim()).orElseThrow(()->new DataNotFoundException("TagName not available"));
-                if (tag != null) {
-                    tagIds.add(tag.getId());
-                }
+                Tag tag = tagRepository.findByName(tagName.trim())
+                        .orElseThrow(() -> new DataNotFoundException("TagName not available"));
+                tagIds.add(tag.getId());
             }
-            posts = postRepository.findByTags_IdIn(tagIds, pageable);
-        } else {
-            posts = postRepository.findAll(pageable);
+            tagSpecification = (root, query, criteriaBuilder) ->
+                    root.join("tags").get("id").in(tagIds);
         }
 
-        List<GetAllPostResponse> responses = posts.map(this::mapPostToResponses).toList();
-        return new ApiResponse<>(StatusConstants.success(), responses);
+        Specification<Post> combinedSpecification = activeSpecification;
+        if (tagSpecification != null) {
+            combinedSpecification = activeSpecification.and(tagSpecification);
+        }
+
+        Page<Post> posts = postRepository.findAll(combinedSpecification, pageable);
+
+        List<GetAllPostResponse> responses = posts.stream().map(this::mapPostToResponses).toList();
+        PagedResponse<GetAllPostResponse> pagedResponse = new PagedResponse<>(
+                responses,
+                posts.getNumber(),
+                posts.getSize(),
+                posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isLast()
+        );
+        return new ApiResponse<>(StatusConstants.success(), pagedResponse);
     }
 
+    @Override
+    public ResponseEntity<ApiResponse<Object>> getPostById(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new DataNotFoundException("Post with ID " + postId + " not found"));
+        GetAllPostResponse getAllPostResponse = mapPostToResponses(post);
+
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), getAllPostResponse));
+    }
+
+    @Override
+    public ApiResponse<PagedResponse<GetAllPostResponse>> searchPosts(String title, List<String> tags, int page, int size, String sortBy) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "createdAt" : sortBy));
+        Page<Post> posts;
+        if (tags != null && !tags.isEmpty()){
+            List<Long> tagId = new ArrayList<>();
+            for (String tagName:tags){
+                Tag name = tagRepository.findByName(tagName.trim()).orElseThrow(()->new DataNotFoundException("Tag '"+tagName+"' not found"));
+                tagId.add(name.getId());
+            }
+
+            if (title != null && !title.isEmpty()){
+                posts = postRepository.findByTitleContainingIgnoreCaseAndTags_IdIn(title,tagId,pageable);
+            } else {
+                posts = postRepository.findByTags_IdIn(tagId,pageable);
+            }
+        } else if (title != null && !title.isEmpty()) {
+            posts = postRepository.findByTitleContainingIgnoreCase(title,pageable);
+        } else {
+            posts =  postRepository.findAll(pageable);
+        }
+        List<GetAllPostResponse> responses = posts.stream().map(this::mapPostToResponses).toList();
+
+        PagedResponse<GetAllPostResponse> pagedResponse = new PagedResponse<>(
+                responses,
+                posts.getNumber(),
+                posts.getSize(),
+                posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isLast()
+        );
+        return new ApiResponse<>(StatusConstants.success(),pagedResponse);
+    }
 
 
     private PostResponse mapPostToResponse(Post post) {

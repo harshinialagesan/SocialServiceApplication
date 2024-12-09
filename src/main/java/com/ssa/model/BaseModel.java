@@ -36,6 +36,6 @@ public abstract class BaseModel {
     public LocalDateTime deletedAt;
 
     @Column(name = "is_active")
-    public Integer isActive= Constants.IS_DELETED;
+    public Integer isActive= Constants.IS_ACTIVE;
 
 }
