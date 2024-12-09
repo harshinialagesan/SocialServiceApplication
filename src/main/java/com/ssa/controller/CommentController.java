@@ -2,16 +2,15 @@ package com.ssa.controller;
 
 import com.ssa.request.CommentRequest;
 import com.ssa.response.ApiResponse;
-import com.ssa.response.CommentResponse;
 import com.ssa.service.CommentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/comment")
+@CrossOrigin(origins = "http://localhost:4200")
 public class CommentController {
 
     @Autowired
@@ -23,7 +22,7 @@ public class CommentController {
     }
 
 
-    @PutMapping("/{commentId}")
+    @PatchMapping("/{commentId}")
     public ResponseEntity<ApiResponse<Object>> updateComment(@PathVariable Long commentId, @RequestBody CommentRequest commentRequest) {
         return commentService.updateComment(commentId, commentRequest);
     }
@@ -33,7 +32,7 @@ public class CommentController {
         return commentService.deleteComment(postId, commentId, userId);
     }
 
-    @GetMapping("/{postId}/comments")
+    @GetMapping("/post/{postId}")
     public ResponseEntity<ApiResponse<Object>> getCommentsByPost(@PathVariable Long postId) {
         return commentService.getCommentsByPost(postId);
     }

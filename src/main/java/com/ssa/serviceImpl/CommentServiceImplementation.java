@@ -26,6 +26,11 @@ import java.util.stream.Collectors;
 public class CommentServiceImplementation implements CommentService {
 
     public static final String USER_NOT_FOUND = "User Not Found";
+    public static final String POST_NOT_FOUND = "Post Not Found";
+    public static final String COMMENT_ADDED_SUCCESSFULLY = "Comment added successfully";
+    public static final String COMMENT_NOT_FOUND = "Comment not found.";
+    public static final String COMMENT_UPDATED_SUCCESSFULLY = "Comment updated successfully.";
+    public static final String COMMENT_DELETED_SUCCESSFULLY = "Comment deleted successfully.";
     @Autowired
     UserRepository userRepository;
     @Autowired
@@ -41,7 +46,7 @@ public class CommentServiceImplementation implements CommentService {
         }
         Optional<Post> post = postRepository.findById(postId);
         if (post.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
         }
 
         Comment comment = new Comment();
@@ -52,7 +57,7 @@ public class CommentServiceImplementation implements CommentService {
 
         commentRepository.save(comment);
 
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Comment added successfully"));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), COMMENT_ADDED_SUCCESSFULLY));
 
     }
 
@@ -61,7 +66,7 @@ public class CommentServiceImplementation implements CommentService {
         Optional<Comment> existingComment = commentRepository.findById(commentId);
 
         if (existingComment.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(StatusConstants.invalid(), "Comment not found."));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(StatusConstants.invalid(), COMMENT_NOT_FOUND));
         }
 
         Comment comment = existingComment.get();
@@ -73,7 +78,7 @@ public class CommentServiceImplementation implements CommentService {
             comment.setComment(commentRequest.getComment());
             comment.setUpdatedAt(LocalDateTime.now());
             commentRepository.save(comment);
-            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Comment updated successfully."));
+            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), COMMENT_UPDATED_SUCCESSFULLY));
         } else {
             return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Comment text cannot be empty."));
         }
@@ -83,15 +88,15 @@ public class CommentServiceImplementation implements CommentService {
     public ResponseEntity<ApiResponse<Object>> deleteComment(Long postId, Long commentId, Long userId) {
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "User not found."));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
         }
         Optional<Post> post = postRepository.findById(postId);
         if (post.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Post not found."));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
         }
         Optional<Comment> comment = commentRepository.findById(commentId);
         if (comment.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(StatusConstants.invalid(), "Comment not found."));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(StatusConstants.invalid(), COMMENT_NOT_FOUND));
         }
 
         Comment existingComment = comment.get();
@@ -103,19 +108,18 @@ public class CommentServiceImplementation implements CommentService {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(StatusConstants.invalid(), "User is not authorized to delete this comment."));
         }
         commentRepository.delete(existingComment);
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Comment deleted successfully."));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), COMMENT_DELETED_SUCCESSFULLY));
     }
 
     @Override
     public ResponseEntity<ApiResponse<Object>> getCommentsByPost(Long postId) {
         Optional<Post> post = postRepository.findById(postId);
         if (post.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Post not found."));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
         }
         List<Comment> comments = commentRepository.findByPostId(post.get());
         List<CommentResponse> commentResponses = comments.stream().map(this::mapToCommentResponse).collect(Collectors.toList());
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), commentResponses));
-
     }
 
 

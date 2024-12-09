@@ -19,4 +19,13 @@ public class EmailService {
         email.setText(message);
         mailSender.send(email);
     }
+
+    public void sendPasswordResetEmail(String email, String subject, String message) {
+        SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
+        simpleMailMessage.setFrom("harshinialagesan02@gamil.com");
+        simpleMailMessage.setTo(email);
+        simpleMailMessage.setSubject(subject);
+        simpleMailMessage.setText(message);
+        mailSender.send(simpleMailMessage);
+    }
 }
