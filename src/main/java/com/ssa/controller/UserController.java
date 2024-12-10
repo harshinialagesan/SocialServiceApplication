@@ -27,11 +27,17 @@ public class UserController {
         return loginService.createUser(request);
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<LoginResponseDto> loginUser(@RequestBody LoginRequestDto loginRequestDto) {
-//        LoginResponseDto loginResponseDto = loginService.loginUser(loginRequestDto);
-//        return ResponseEntity.ok(loginResponseDto);
-//    }
+    @PatchMapping("/update/{userId}")
+    public ResponseEntity<ApiResponse<Object>> updateUser(@PathVariable Long userId,
+                                                          @Valid @RequestBody UserUpdateRequest request) {
+        return loginService.updateUser(userId, request);
+    }
+
+    @GetMapping("/get/{userId}")
+    public ResponseEntity<ApiResponse<Object>> getUserById(@PathVariable Long userId) {
+        return loginService.getUserById(userId);
+    }
+
 
     @PostMapping("/send-otp")
     public ResponseEntity<ApiResponse<Object>> sendOtp(@RequestBody OtpRequest request) {
@@ -41,14 +47,19 @@ public class UserController {
 
     @PostMapping("/verify")
     public ResponseEntity<ApiResponse<Object>> verifyOtp(@RequestBody OtpRequest request) {
-        loginService.verifyOtp(request.getEmail(), request.getOtp());
+        loginService.verifyOtp(request.getOtp());
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "OTP verified successfully"));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<Object>> resetPassword(@RequestBody ResetPasswordWithOtpRequest request) {
-        loginService.resetPasswordWithOtp(request.getEmail(), request.getNewPassword(), request.getOtp());
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Password reset successfully"));
+    public ResponseEntity<ApiResponse<Object>> resetPassword(@RequestParam("email") String email,
+                                                               @RequestBody ResetPasswordRequest request) {
+        try {loginService.resetPassword(email,request.getNewPassword(), request.getConfirmPassword());
+            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(),"Password reset successfully."));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(),"Could Not Reset the Password"));
+        }
     }
+
 
 }

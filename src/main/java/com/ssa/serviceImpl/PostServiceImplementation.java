@@ -290,7 +290,7 @@ public class PostServiceImplementation implements PostService {
         response.setComments(post.getComments().size());
 //        response.setImages(post.getImage().stream().map(image -> image.getImageUrl()).toList());
         response.setCreatedAt(post.getCreatedAt());
-        response.setUserName(post.getUserId().getName());
+        response.setUserName(post.getUserId().getUserName());
         return response;
     }
 

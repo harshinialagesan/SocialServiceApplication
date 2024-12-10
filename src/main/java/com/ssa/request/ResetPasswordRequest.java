@@ -9,9 +9,8 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ResetPasswordWithOtpRequest {
+public class ResetPasswordRequest {
 
-        private String email;
         private String newPassword;
-        private String otp;
+        private String confirmPassword;
 }

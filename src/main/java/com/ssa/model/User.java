@@ -30,9 +30,6 @@ public class User extends BaseModel{
     @Column(name = "user_name")
     public String userName;
 
-    @Column(name = "name")
-    public String name;
-
     @OneToMany(mappedBy = "userId", fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<Post> post;

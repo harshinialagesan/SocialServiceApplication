@@ -1,9 +1,6 @@
 package com.ssa.service;
 
-import com.ssa.request.LoginRequest;
-import com.ssa.request.LoginRequestDto;
-import com.ssa.request.LoginResponseDto;
-import com.ssa.request.UserRequest;
+import com.ssa.request.*;
 import com.ssa.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 
@@ -15,7 +12,11 @@ public interface UserService {
 
     void sendOtpForPasswordReset(String email);
 
-    void verifyOtp(String email, String otp);
+    void verifyOtp(String otp);
 
-    void resetPasswordWithOtp(String email, String newPassword, String otp);
+    void resetPassword(String email, String newPassword, String confirmPassword);
+
+    ResponseEntity<ApiResponse<Object>> updateUser(Long userId, UserUpdateRequest request);
+
+    ResponseEntity<ApiResponse<Object>> getUserById(Long userId);
 }

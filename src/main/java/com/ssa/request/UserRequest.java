@@ -9,9 +9,6 @@ import lombok.Setter;
 @Setter
 public class UserRequest {
 
-    @NotNull(message = "Name is required")
-    @NotBlank(message = "Name is Required")
-    private String name;
     @NotNull(message = "UserName is required")
     @NotBlank(message = "UserName is Required")
     private String userName;

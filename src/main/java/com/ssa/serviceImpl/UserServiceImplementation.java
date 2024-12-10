@@ -8,7 +8,10 @@ import com.ssa.repository.OtpRepository;
 import com.ssa.repository.UserRepository;
 import com.ssa.request.LoginRequest;
 import com.ssa.request.UserRequest;
+import com.ssa.request.UserUpdateRequest;
 import com.ssa.response.ApiResponse;
+import com.ssa.response.PostDTO;
+import com.ssa.response.UserResponseDTO;
 import com.ssa.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +19,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 
 @Service
-public class LoginServiceImplementation implements UserService {
+public class UserServiceImplementation implements UserService {
 
 
     public static final String PASSWORD_AND_CONFIRM_PASSWORD_DO_NOT_MATCH = "Password and Confirm Password do not match";
@@ -64,7 +69,6 @@ public class LoginServiceImplementation implements UserService {
                     StatusConstants.invalid(), USER_WITH_THIS_EMAIL_ALREADY_EXISTS));
         }
         User user = new User();
-        user.setName(request.getName());
         user.setUserName(request.getUserName());
         user.setUserEmail(request.getEmail());
         user.setUserPassword(bCryptPE.encode(request.getPassword()));
@@ -73,7 +77,7 @@ public class LoginServiceImplementation implements UserService {
         userRepository.save(user);
 
         String subject = "Welcome to SSA Platform!";
-        String message = "Hello " + request.getName() + ",\n\n"
+        String message = "Hello " + request.getUserName() + ",\n\n"
                 + "Thank you for registering on our platform. We're excited to have you on board!";
         emailService.sendWelcomeEmail(request.getEmail(), subject, message);
         return ResponseEntity.ok(new ApiResponse<>(
@@ -88,22 +92,22 @@ public class LoginServiceImplementation implements UserService {
         OtpVerfication otpVerification = new OtpVerfication();
         otpVerification.setEmail(email);
         otpVerification.setOtp(otp);
-        otpVerification.setExpirationTime(LocalDateTime.now().plusMinutes(15));
+        otpVerification.setExpirationTime(LocalDateTime.now().plusSeconds(60));
         otpVerification.setVerified(0);
         otpRepository.save(otpVerification);
 
         String subject = "Reset Password OTP";
         String message = "Hello,\n\nYour OTP for resetting your password is: " + otp +
-                "\nThis OTP is valid for 15 minutes.";
+                "\nThis OTP is valid for 60 Seconds.";
         emailService.sendPasswordResetEmail(email, subject, message);
     }
 
     @Override
-    public void verifyOtp(String email, String otp) {
-        OtpVerfication otpVerification = otpRepository.findByEmailAndOtp(email, otp).orElseThrow(() -> new RuntimeException("Invalid OTP"));
+    public void verifyOtp(String otp) {
+        OtpVerfication otpVerification = otpRepository.findByOtp(otp).orElseThrow(() -> new DataNotFoundException("Invalid OTP"));
 
         if (otpVerification.getExpirationTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP has expired");
+            throw new DataNotFoundException("OTP has expired");
         }
 
         otpVerification.setVerified(1);
@@ -111,19 +115,53 @@ public class LoginServiceImplementation implements UserService {
     }
 
     @Override
-    public void resetPasswordWithOtp(String email, String newPassword, String otp) {
-        OtpVerfication otpVerification = otpRepository.findByEmailAndOtp(email, otp).orElseThrow(() -> new RuntimeException("Invalid OTP"));
-        if (otpVerification.getExpirationTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP has expired");
-        }
-        if (otpVerification.getVerified() == null || otpVerification.getVerified() == 0) {
-            throw new RuntimeException("OTP is not verified");
+    public void resetPassword(String email, String newPassword, String confirmPassword) {
+        if (!newPassword.equals(confirmPassword)) {
+            throw new RuntimeException("New password and confirm password do not match");
         }
         User user = userRepository.findByUserEmail(email).orElseThrow(() -> new RuntimeException("User not found with this email"));
         user.setUserPassword(bCryptPE.encode(newPassword));
         userRepository.save(user);
-        otpRepository.delete(otpVerification);
     }
 
+    @Override
+    public ResponseEntity<ApiResponse<Object>> updateUser(Long userId, UserUpdateRequest request) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        if (request.getUserName() != null && !request.getUserName().isBlank()) {
+            user.setUserName(request.getUserName());
+        }
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.existsByUserEmailAndIdNot(request.getEmail(), userId)) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Email already exist for this user"));
+            }
+            user.setUserEmail(request.getEmail());
+        }
+        userRepository.save(user);
+
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "User updated successfully"));
+
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<Object>> getUserById(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        UserResponseDTO responseDTO = new UserResponseDTO();
+        responseDTO.setId(user.getId());
+        responseDTO.setUserEmail(user.getUserEmail());
+        responseDTO.setUserName(user.getUserName());
+        responseDTO.setPostCount(user.getPost().size());
+        List<PostDTO> postDTOs = user.getPost().stream().map(post -> {
+            PostDTO postDTO = new PostDTO();
+            postDTO.setId(post.getId());
+            postDTO.setTitle(post.getTitle());
+            postDTO.setContent(post.getDescription());
+            return postDTO;
+        }).collect(Collectors.toList());
+
+        responseDTO.setPosts(postDTOs);
+
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), responseDTO));
+    }
 
 }
