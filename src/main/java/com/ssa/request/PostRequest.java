@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,6 +23,6 @@ public class PostRequest {
     private Long userId;
     private List<String> tagName;
     private List<String> imageUrls;
-
+    private List<MultipartFile> images;
 
 }

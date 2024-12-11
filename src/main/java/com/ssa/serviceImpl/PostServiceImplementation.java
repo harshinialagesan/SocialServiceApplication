@@ -3,6 +3,7 @@ package com.ssa.serviceImpl;
 import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
+import com.ssa.model.Images;
 import com.ssa.model.Post;
 import com.ssa.model.Tag;
 import com.ssa.model.User;
@@ -16,6 +17,7 @@ import com.ssa.response.PagedResponse;
 import com.ssa.response.PostResponse;
 import com.ssa.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +25,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,12 +41,18 @@ public class PostServiceImplementation implements PostService {
     public static final String POST_NOT_FOUND = "Post not found";
     public static final String USER_NOT_FOUND1 = USER_NOT_FOUND;
     public static final String POST_UPDATED_SUCCESSFULLY = "Post Updated Successfully";
+    private final String bucketName = "databucketagira";
     @Autowired
     UserRepository userRepository;
     @Autowired
     TagRepository tagRepository;
     @Autowired
     PostRepository postRepository;
+    @Autowired
+    S3Service s3Service;
+
+    @Value("${aws.s3.region}")
+    private String awsRegion;
 
     @Override
     public ResponseEntity<ApiResponse<Object>> createPost(PostRequest request) {
@@ -236,22 +246,22 @@ public class PostServiceImplementation implements PostService {
     public ApiResponse<PagedResponse<GetAllPostResponse>> searchPosts(String title, List<String> tags, int page, int size, String sortBy) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "createdAt" : sortBy));
         Page<Post> posts;
-        if (tags != null && !tags.isEmpty()){
+        if (tags != null && !tags.isEmpty()) {
             List<Long> tagId = new ArrayList<>();
-            for (String tagName:tags){
-                Tag name = tagRepository.findByName(tagName.trim()).orElseThrow(()->new DataNotFoundException("Tag '"+tagName+"' not found"));
+            for (String tagName : tags) {
+                Tag name = tagRepository.findByName(tagName.trim()).orElseThrow(() -> new DataNotFoundException("Tag '" + tagName + "' not found"));
                 tagId.add(name.getId());
             }
 
-            if (title != null && !title.isEmpty()){
-                posts = postRepository.findByTitleContainingIgnoreCaseAndTags_IdIn(title,tagId,pageable);
+            if (title != null && !title.isEmpty()) {
+                posts = postRepository.findByTitleContainingIgnoreCaseAndTags_IdIn(title, tagId, pageable);
             } else {
-                posts = postRepository.findByTags_IdIn(tagId,pageable);
+                posts = postRepository.findByTags_IdIn(tagId, pageable);
             }
         } else if (title != null && !title.isEmpty()) {
-            posts = postRepository.findByTitleContainingIgnoreCase(title,pageable);
+            posts = postRepository.findByTitleContainingIgnoreCase(title, pageable);
         } else {
-            posts =  postRepository.findAll(pageable);
+            posts = postRepository.findAll(pageable);
         }
         List<GetAllPostResponse> responses = posts.stream().map(this::mapPostToResponses).toList();
 
@@ -263,8 +273,73 @@ public class PostServiceImplementation implements PostService {
                 posts.getTotalPages(),
                 posts.isLast()
         );
-        return new ApiResponse<>(StatusConstants.success(),pagedResponse);
+        return new ApiResponse<>(StatusConstants.success(), pagedResponse);
     }
+
+    @Override
+    public ResponseEntity<ApiResponse<Object>> createPosts(PostRequest request, List<MultipartFile> images) {
+
+        Optional<User> user = userRepository.findById(request.getUserId());
+        if (user.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
+        }
+        if (request.getTitle() == null || request.getTitle().isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Title is required."));
+        }
+        if (request.getDescription() == null || request.getDescription().isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Description is required."));
+        }
+
+        User user1 = user.get();
+        Post post = new Post();
+        post.setTitle(request.getTitle());
+        post.setDescription(request.getDescription());
+        post.setUserId(user1);
+        post.setIsActive(Constants.IS_ACTIVE);
+
+        // Handle tags
+        List<String> tagNames = request.getTagName();
+        List<Tag> tags = new ArrayList<>();
+        if (tagNames != null && !tagNames.isEmpty()) {
+            for (String tagName : tagNames) {
+                tagName = tagName.trim();
+                if (!tagName.startsWith("#") || tagName.length() < 2) {
+                    return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should start with '#' and be at least 2 characters long."));
+                }
+                Tag tag = tagRepository.findByName(tagName).orElse(null);
+                if (tag == null) {
+                    tag = new Tag();
+                    tag.setName(tagName);
+                    tag.setUserid(user1);
+                    tag = tagRepository.save(tag);
+                }
+                tags.add(tag);
+            }
+            post.setTags(tags);
+        }
+        List<Images> imageList = new ArrayList<>();
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile file : images) {
+                try {
+                    String imageUrl = s3Service.uploadFile(file);
+                    Images image = new Images();
+                    image.setImageUrl(imageUrl);
+                    image.setPostId(post);
+                    imageList.add(image);
+                } catch (IOException e) {
+                    return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Error uploading image: " + e.getMessage()));
+                }
+            }
+            post.setImage(imageList);
+        }
+
+        postRepository.save(post);
+
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Post Created Successfully"));
+
+    }
+
+
 
 
     private PostResponse mapPostToResponse(Post post) {

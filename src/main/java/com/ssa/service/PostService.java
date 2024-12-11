@@ -5,6 +5,7 @@ import com.ssa.response.ApiResponse;
 import com.ssa.response.GetAllPostResponse;
 import com.ssa.response.PagedResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -20,4 +21,7 @@ public interface PostService {
     ResponseEntity<ApiResponse<Object>> getPostById(Long postId);
 
     ApiResponse<PagedResponse<GetAllPostResponse>> searchPosts(String title, List<String> tags, int page, int size, String sortBy);
+
+
+    ResponseEntity<ApiResponse<Object>> createPosts(PostRequest request, List<MultipartFile> images);
 }

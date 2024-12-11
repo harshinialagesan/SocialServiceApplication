@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +24,24 @@ public class PostController {
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Object>> createPost(@Valid @RequestBody PostRequest postRequest){
         return postService.createPost(postRequest);
+    }
+
+    @PostMapping("/createPost")
+    public ResponseEntity<ApiResponse<Object>> createPost(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("userId") Long userId,
+            @RequestParam(value = "tags", required = false) List<String> tags,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+
+        PostRequest request = new PostRequest();
+        request.setTitle(title);
+        request.setDescription(description);
+        request.setUserId(userId);
+        request.setTagName(tags);
+        request.setImages(images);
+
+        return postService.createPosts(request, images);
     }
 
     @PatchMapping("/update/{postId}")
