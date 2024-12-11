@@ -41,7 +41,6 @@ public class PostServiceImplementation implements PostService {
     public static final String POST_NOT_FOUND = "Post not found";
     public static final String USER_NOT_FOUND1 = USER_NOT_FOUND;
     public static final String POST_UPDATED_SUCCESSFULLY = "Post Updated Successfully";
-    private final String bucketName = "databucketagira";
     @Autowired
     UserRepository userRepository;
     @Autowired
@@ -50,9 +49,6 @@ public class PostServiceImplementation implements PostService {
     PostRepository postRepository;
     @Autowired
     S3Service s3Service;
-
-    @Value("${aws.s3.region}")
-    private String awsRegion;
 
     @Override
     public ResponseEntity<ApiResponse<Object>> createPost(PostRequest request) {
@@ -158,9 +154,7 @@ public class PostServiceImplementation implements PostService {
             }
             newTags.add(tag);
         }
-        List<Tag> tagsToRemove = post.getTags().stream()
-                .filter(tag -> !newTags.contains(tag))
-                .collect(Collectors.toList());
+        List<Tag> tagsToRemove = post.getTags().stream().filter(tag -> !newTags.contains(tag)).collect(Collectors.toList());
         for (Tag tagToRemove : tagsToRemove) {
             post.getTags().remove(tagToRemove);
             boolean isTagUsedElsewhere = postRepository.existsByTagsContains(tagToRemove);
@@ -199,19 +193,16 @@ public class PostServiceImplementation implements PostService {
     @Override
     public ApiResponse<PagedResponse<GetAllPostResponse>> getAllPosts(int page, int size, String sortBy, String tags) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "createdAt" : sortBy));
-        Specification<Post> activeSpecification = (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("isActive"), 1);
+        Specification<Post> activeSpecification = (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("isActive"), 1);
 
         Specification<Post> tagSpecification = null;
         if (tags != null && !tags.isEmpty()) {
             List<Long> tagIds = new ArrayList<>();
             for (String tagName : tags.split(",")) {
-                Tag tag = tagRepository.findByName(tagName.trim())
-                        .orElseThrow(() -> new DataNotFoundException("TagName not available"));
+                Tag tag = tagRepository.findByName(tagName.trim()).orElseThrow(() -> new DataNotFoundException("TagName not available"));
                 tagIds.add(tag.getId());
             }
-            tagSpecification = (root, query, criteriaBuilder) ->
-                    root.join("tags").get("id").in(tagIds);
+            tagSpecification = (root, query, criteriaBuilder) -> root.join("tags").get("id").in(tagIds);
         }
 
         Specification<Post> combinedSpecification = activeSpecification;
@@ -235,8 +226,7 @@ public class PostServiceImplementation implements PostService {
 
     @Override
     public ResponseEntity<ApiResponse<Object>> getPostById(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new DataNotFoundException("Post with ID " + postId + " not found"));
+        Post post = postRepository.findById(postId).orElseThrow(() -> new DataNotFoundException("Post with ID " + postId + " not found"));
         GetAllPostResponse getAllPostResponse = mapPostToResponses(post);
 
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), getAllPostResponse));
@@ -297,7 +287,6 @@ public class PostServiceImplementation implements PostService {
         post.setUserId(user1);
         post.setIsActive(Constants.IS_ACTIVE);
 
-        // Handle tags
         List<String> tagNames = request.getTagName();
         List<Tag> tags = new ArrayList<>();
         if (tagNames != null && !tagNames.isEmpty()) {
@@ -339,21 +328,6 @@ public class PostServiceImplementation implements PostService {
 
     }
 
-
-
-
-    private PostResponse mapPostToResponse(Post post) {
-        PostResponse response = new PostResponse();
-        response.setId(post.getId());
-        response.setTitle(post.getTitle());
-        response.setDescription(post.getDescription());
-        response.setUserId(post.getUserId() != null ? post.getUserId().getId() : null);
-        response.setTags(post.getTags() != null ? post.getTags().stream().map(Tag::getName).collect(Collectors.toList()) : new ArrayList<>());
-        response.setLikes(post.getLikes() != null ? post.getLikes().size() : 0);
-        response.setComments(post.getComments() != null ? post.getComments().size() : 0);
-        return response;
-    }
-
     private GetAllPostResponse mapPostToResponses(Post post) {
         GetAllPostResponse response = new GetAllPostResponse();
         response.setId(post.getId());
@@ -363,7 +337,11 @@ public class PostServiceImplementation implements PostService {
         response.setTags(post.getTags().stream().map(Tag::getName).toList());
         response.setLikes(post.getLikes().size());
         response.setComments(post.getComments().size());
-//        response.setImages(post.getImage().stream().map(image -> image.getImageUrl()).toList());
+        if (post.getImage() != null && !post.getImage().isEmpty()) {
+            response.setImages(post.getImage().stream()
+                    .map(Images::getImageUrl)
+                    .toList());
+        }
         response.setCreatedAt(post.getCreatedAt());
         response.setUserName(post.getUserId().getUserName());
         return response;

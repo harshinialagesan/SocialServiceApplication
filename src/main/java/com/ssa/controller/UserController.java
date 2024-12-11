@@ -39,6 +39,12 @@ public class UserController {
     }
 
 
+    @DeleteMapping("/delete/{userId}")
+    public ResponseEntity<ApiResponse<Object>> softDeleteUser(@PathVariable Long userId) {
+       return loginService.deleteUser(userId);
+    }
+
+
     @PostMapping("/send-otp")
     public ResponseEntity<ApiResponse<Object>> sendOtp(@RequestBody OtpRequest request) {
         loginService.sendOtpForPasswordReset(request.getEmail());

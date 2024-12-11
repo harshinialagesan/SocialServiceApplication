@@ -17,11 +17,16 @@ public class S3Service {
 
     private final S3Client s3Client;
     private final String bucketName;
+    private final String awsRegion;
+
+
+
 
     @Autowired
-    public S3Service(S3Client s3Client, @Value("${aws.s3.bucket.name}") String bucketName) {
+    public S3Service(S3Client s3Client, @Value("${aws.s3.bucket.name}") String bucketName,@Value("${aws.s3.region}") String awsRegion) {
         this.s3Client = s3Client;
         this.bucketName = bucketName;
+        this.awsRegion = awsRegion;
     }
 
     public String uploadFile(MultipartFile file) throws IOException {
@@ -46,6 +51,6 @@ public class S3Service {
                 .build(), tempFilePath);
         Files.deleteIfExists(tempFilePath);
 
-        return "https://" + bucketName + ".s3." + System.getProperty("aws.s3.region")+ ".amazonaws.com/" + fileName;
+        return "https://" + bucketName + ".s3." +awsRegion+ ".amazonaws.com/" + fileName;
     }
 }

@@ -1,5 +1,6 @@
 package com.ssa.serviceImpl;
 
+import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
 import com.ssa.model.OtpVerfication;
@@ -163,5 +164,14 @@ public class UserServiceImplementation implements UserService {
 
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), responseDTO));
     }
+
+    @Override
+    public ResponseEntity<ApiResponse<Object>> deleteUser(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        user.setIsActive(Constants.IS_DELETED);
+        userRepository.save(user);
+        return  ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(),"User Deleted Successfully"));
+    }
+
 
 }
