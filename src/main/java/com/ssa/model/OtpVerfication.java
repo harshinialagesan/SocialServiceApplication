@@ -29,5 +29,5 @@ public class OtpVerfication {
     private LocalDateTime expirationTime;
 
     @Column(name = "verified")
-    private Integer Verified;
+    private Integer verified;
 }

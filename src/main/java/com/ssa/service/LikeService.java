@@ -9,5 +9,5 @@ import org.springframework.http.ResponseEntity;
 public interface LikeService {
     ResponseEntity<ApiResponse<Object>> likeOnPost(Long postId, Long userId);
 
-    ResponseEntity<ApiResponse<Object>> getAllPostsLikedByUser(Long userId);
+    ResponseEntity<ApiResponse<Object>> getAllPostsLikedByUser(Long userId, int page, int size, String sortBy);
 }

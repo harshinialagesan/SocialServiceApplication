@@ -21,8 +21,10 @@ public class LikesController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<Object>> getAllPostsLikedByUser(@PathVariable Long userId) {
-        return likeService.getAllPostsLikedByUser(userId);
+    public ResponseEntity<ApiResponse<Object>> getAllPostsLikedByUser(@PathVariable Long userId,@RequestParam(defaultValue = "0") int page,
+                                                                      @RequestParam(defaultValue = "10") int size,
+                                                                      @RequestParam(value = "sortBy", required = false) String sortBy) {
+        return likeService.getAllPostsLikedByUser(userId,page,size,sortBy);
     }
 
 

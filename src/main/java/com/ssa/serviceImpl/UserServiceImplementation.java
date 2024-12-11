@@ -3,18 +3,22 @@ package com.ssa.serviceImpl;
 import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
-import com.ssa.model.OtpVerfication;
-import com.ssa.model.User;
+import com.ssa.model.*;
 import com.ssa.repository.OtpRepository;
+import com.ssa.repository.PostRepository;
 import com.ssa.repository.UserRepository;
 import com.ssa.request.LoginRequest;
+import com.ssa.response.LoginResponse;
 import com.ssa.request.UserRequest;
 import com.ssa.request.UserUpdateRequest;
-import com.ssa.response.ApiResponse;
-import com.ssa.response.PostDTO;
-import com.ssa.response.UserResponseDTO;
+import com.ssa.response.*;
 import com.ssa.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,8 @@ public class UserServiceImplementation implements UserService {
     UserRepository userRepository;
     @Autowired
     OtpRepository otpRepository;
+    @Autowired
+    PostRepository postRepository;
 
     @Autowired
     EmailService emailService;
@@ -54,7 +60,10 @@ public class UserServiceImplementation implements UserService {
             return ResponseEntity.badRequest().body(new ApiResponse<>(
                     StatusConstants.invalid(), "Invalid email or password."));
         }
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Valid User"));
+        LoginResponse loginResponse = new LoginResponse();
+        loginResponse.setUserId(user.getId());
+        loginResponse.setMessage("Valid User");
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), loginResponse));
     }
 
 
@@ -81,8 +90,7 @@ public class UserServiceImplementation implements UserService {
         String message = "Hello " + request.getUserName() + ",\n\n"
                 + "Thank you for registering on our platform. We're excited to have you on board!";
         emailService.sendWelcomeEmail(request.getEmail(), subject, message);
-        return ResponseEntity.ok(new ApiResponse<>(
-                StatusConstants.success(), USER_CREATED_SUCCESSFULLY_A_WELCOME_EMAIL_HAS_BEEN_SENT));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), USER_CREATED_SUCCESSFULLY_A_WELCOME_EMAIL_HAS_BEEN_SENT));
     }
 
     @Override
@@ -172,6 +180,46 @@ public class UserServiceImplementation implements UserService {
         userRepository.save(user);
         return  ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(),"User Deleted Successfully"));
     }
+
+    @Override
+    public ApiResponse<PagedResponse<GetAllPostResponse>> getAllPostsByUser(Long userId, int page, int size, String sortBy) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "createdAt" : sortBy));
+        Specification<Post> activeSpecification = (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("isActive"), 1);
+        Specification<Post> userSpecification = (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("userId").get("id"), userId);
+        Specification<Post> combinedSpecification = activeSpecification.and(userSpecification);
+        Page<Post> posts = postRepository.findAll(combinedSpecification, pageable);
+        List<GetAllPostResponse> responses = posts.stream().map(this::mapPostToResponses).toList();
+        PagedResponse<GetAllPostResponse> pagedResponse = new PagedResponse<>(
+                responses,
+                posts.getNumber(),
+                posts.getSize(),
+                posts.getTotalElements(),
+                posts.getTotalPages(),
+                posts.isLast()
+        );
+
+        return new ApiResponse<>(StatusConstants.success(), pagedResponse);
+    }
+
+    private GetAllPostResponse mapPostToResponses(Post post) {
+        GetAllPostResponse response = new GetAllPostResponse();
+        response.setId(post.getId());
+        response.setUserId(post.getUserId().getId());
+        response.setTitle(post.getTitle());
+        response.setDescription(post.getDescription());
+        response.setTags(post.getTags().stream().map(Tag::getName).toList());
+        response.setLikes(post.getLikes().size());
+        response.setComments(post.getComments().size());
+        if (post.getImage() != null && !post.getImage().isEmpty()) {
+            response.setImages(post.getImage().stream()
+                    .map(Images::getImageUrl)
+                    .toList());
+        }
+        response.setCreatedAt(post.getCreatedAt());
+        response.setUserName(post.getUserId().getUserName());
+        return response;
+    }
+
 
 
 }

@@ -3,10 +3,7 @@ package com.ssa.serviceImpl;
 import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
-import com.ssa.model.Images;
-import com.ssa.model.Post;
-import com.ssa.model.Tag;
-import com.ssa.model.User;
+import com.ssa.model.*;
 import com.ssa.repository.PostRepository;
 import com.ssa.repository.TagRepository;
 import com.ssa.repository.UserRepository;
@@ -14,10 +11,8 @@ import com.ssa.request.PostRequest;
 import com.ssa.response.ApiResponse;
 import com.ssa.response.GetAllPostResponse;
 import com.ssa.response.PagedResponse;
-import com.ssa.response.PostResponse;
 import com.ssa.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -165,7 +160,6 @@ public class PostServiceImplementation implements PostService {
         }
         post.getTags().addAll(newTags);
         postRepository.save(post);
-//        PostResponse response = mapPostToResponse(post);
 
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_UPDATED_SUCCESSFULLY));
     }

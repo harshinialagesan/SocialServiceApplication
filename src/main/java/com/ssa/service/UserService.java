@@ -2,6 +2,8 @@ package com.ssa.service;
 
 import com.ssa.request.*;
 import com.ssa.response.ApiResponse;
+import com.ssa.response.GetAllPostResponse;
+import com.ssa.response.PagedResponse;
 import org.springframework.http.ResponseEntity;
 
 public interface UserService {
@@ -22,5 +24,6 @@ public interface UserService {
 
     ResponseEntity<ApiResponse<Object>> deleteUser(Long userId);
 
+    ApiResponse<PagedResponse<GetAllPostResponse>> getAllPostsByUser(Long userId, int page, int size, String sortBy);
 
 }

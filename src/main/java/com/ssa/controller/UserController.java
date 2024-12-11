@@ -3,6 +3,8 @@ package com.ssa.controller;
 import com.ssa.constant.StatusConstants;
 import com.ssa.request.*;
 import com.ssa.response.ApiResponse;
+import com.ssa.response.GetAllPostResponse;
+import com.ssa.response.PagedResponse;
 import com.ssa.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<Object>> getLogin(@RequestBody LoginRequest request) {
         return loginService.getLoginDetails(request);
     }
+
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Object>> createUser(@Valid  @RequestBody UserRequest request) {
@@ -57,7 +60,7 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "OTP verified successfully"));
     }
 
-    @PostMapping("/reset-password")
+    @PatchMapping("/reset-password")
     public ResponseEntity<ApiResponse<Object>> resetPassword(@RequestParam("email") String email,
                                                                @RequestBody ResetPasswordRequest request) {
         try {loginService.resetPassword(email,request.getNewPassword(), request.getConfirmPassword());
@@ -66,6 +69,17 @@ public class UserController {
             return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(),"Could Not Reset the Password"));
         }
     }
+
+    @GetMapping("/posts/{userId}")
+    public ResponseEntity<ApiResponse<PagedResponse<GetAllPostResponse>>> getAllUserPosts(@PathVariable Long userId,
+                                                                                          @RequestParam(defaultValue = "0") int page,
+                                                                                          @RequestParam(defaultValue = "10") int size,
+                                                                                          @RequestParam(value = "sortBy", required = false) String sortBy) {
+
+        ApiResponse<PagedResponse<GetAllPostResponse>> response = loginService.getAllPostsByUser(userId, page, size, sortBy);
+        return ResponseEntity.ok(response);
+    }
+
 
 
 }
