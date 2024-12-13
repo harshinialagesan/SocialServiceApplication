@@ -6,6 +6,7 @@ import com.ssa.exceptions.DataNotFoundException;
 import com.ssa.model.*;
 import com.ssa.repository.OtpRepository;
 import com.ssa.repository.PostRepository;
+import com.ssa.repository.ShareRepository;
 import com.ssa.repository.UserRepository;
 import com.ssa.request.LoginRequest;
 import com.ssa.response.LoginResponse;
@@ -43,6 +44,8 @@ public class UserServiceImplementation implements UserService {
     OtpRepository otpRepository;
     @Autowired
     PostRepository postRepository;
+    @Autowired
+    ShareRepository shareRepository;
 
     @Autowired
     EmailService emailService;
@@ -201,6 +204,7 @@ public class UserServiceImplementation implements UserService {
         return new ApiResponse<>(StatusConstants.success(), pagedResponse);
     }
 
+
     private GetAllPostResponse mapPostToResponses(Post post) {
         GetAllPostResponse response = new GetAllPostResponse();
         response.setId(post.getId());
@@ -210,6 +214,9 @@ public class UserServiceImplementation implements UserService {
         response.setTags(post.getTags().stream().map(Tag::getName).toList());
         response.setLikes(post.getLikes().size());
         response.setComments(post.getComments().size());
+        Long shareCount = shareRepository.countSharesByPostId_Id(post.getId());
+        post.setShareCount(shareCount);
+        response.setShare(post.getShareCount());
         if (post.getImage() != null && !post.getImage().isEmpty()) {
             response.setImages(post.getImage().stream()
                     .map(Images::getImageUrl)

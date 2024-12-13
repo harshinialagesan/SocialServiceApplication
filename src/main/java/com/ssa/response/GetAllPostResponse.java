@@ -18,6 +18,7 @@ public class GetAllPostResponse {
     private List<String> images;
     private int likes;
     private int comments;
+    private Long share;
     private LocalDateTime createdAt;
     private String userName;
 }

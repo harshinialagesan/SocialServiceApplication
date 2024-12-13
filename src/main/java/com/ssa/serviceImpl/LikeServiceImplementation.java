@@ -4,6 +4,7 @@ import com.ssa.constant.StatusConstants;
 import com.ssa.model.*;
 import com.ssa.repository.LikeRepository;
 import com.ssa.repository.PostRepository;
+import com.ssa.repository.ShareRepository;
 import com.ssa.repository.UserRepository;
 import com.ssa.response.ApiResponse;
 import com.ssa.response.GetAllPostResponse;
@@ -20,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class LikeServiceImplementation implements LikeService {
@@ -35,6 +35,8 @@ public class LikeServiceImplementation implements LikeService {
     PostRepository postRepository;
     @Autowired
     UserRepository userRepository;
+    @Autowired
+    ShareRepository shareRepository;
 
 
     @Override
@@ -103,6 +105,9 @@ public class LikeServiceImplementation implements LikeService {
         response.setTags(post.getTags().stream().map(Tag::getName).toList());
         response.setLikes(post.getLikes().size());
         response.setComments(post.getComments().size());
+        Long shareCount = shareRepository.countSharesByPostId_Id(post.getId());
+        post.setShareCount(shareCount);
+        response.setShare(post.getShareCount());
         if (post.getImage() != null && !post.getImage().isEmpty()) {
             response.setImages(post.getImage().stream()
                     .map(Images::getImageUrl)

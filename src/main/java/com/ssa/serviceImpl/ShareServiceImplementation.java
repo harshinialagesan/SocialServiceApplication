@@ -69,6 +69,9 @@ public class ShareServiceImplementation implements ShareService {
         response.setTags(post.getTags().stream().map(Tag::getName).toList());
         response.setLikes(post.getLikes().size());
         response.setComments(post.getComments().size());
+        Long shareCount = shareRepository.countSharesByPostId_Id(post.getId());
+        post.setShareCount(shareCount);
+        response.setShare(post.getShareCount());
         if (post.getImage() != null && !post.getImage().isEmpty()) {
             response.setImages(post.getImage().stream()
                     .map(Images::getImageUrl)

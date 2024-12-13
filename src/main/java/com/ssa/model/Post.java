@@ -38,4 +38,7 @@ public class Post extends BaseModel {
     @JsonManagedReference
     private List<Images> image;
 
+    @Transient
+    private Long shareCount;
+
 }

@@ -13,25 +13,26 @@
         @Bean
         protected SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             http
-                    .csrf(csrf -> csrf.disable()) // Important for API security
+                    .csrf(csrf -> csrf.disable())
                     .authorizeRequests()
-                    .requestMatchers("/user/login", "/user/create").permitAll() // Allow public access to login and user creation
-                    .requestMatchers("/user/**").permitAll() // Secure other user endpoints
-                    .anyRequest().permitAll() // Secure all other requests
-                    .and()
-                    .formLogin(form -> form
-                            .loginPage("/user/login")
-                            .loginProcessingUrl("/perform_login") // Add login processing URL
-                            .defaultSuccessUrl("/user/dashboard", true) // Redirect after successful login
-                            .failureUrl("/user/login?error=true")
-                            .permitAll()
-                    )
-                    .logout(logout -> logout
-                            .logoutSuccessUrl("/user/login")
-                            .invalidateHttpSession(true)
-                            .deleteCookies("JSESSIONID")
-                            .permitAll()
-                    );
+                    .requestMatchers("/user/login", "/user/create","/").permitAll()
+                    .requestMatchers("/user/**").permitAll()
+                    .requestMatchers("/post/**").permitAll()
+                    .anyRequest().permitAll() ;
+//                    .and()
+////                    .formLogin(form -> form
+////                            .loginPage("/user/login")
+////                            .loginProcessingUrl("/perform_login")
+////                            .defaultSuccessUrl("/user/dashboard", true)
+////                            .failureUrl("/user/login?error=true")
+////                            .permitAll()
+////                    )
+//                    .logout(logout -> logout
+//                            .logoutSuccessUrl("/user/login")
+//                            .invalidateHttpSession(true)
+//                            .deleteCookies("JSESSIONID")
+//                            .permitAll()
+//                    );
 
             return http.build();
         }

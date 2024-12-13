@@ -7,6 +7,7 @@ import com.ssa.response.PagedResponse;
 import com.ssa.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,12 +27,12 @@ public class PostController {
         return postService.createPost(postRequest);
     }
 
-    @PostMapping("/createPost")
+    @PostMapping(value = "/createPost",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<Object>> createPost(@RequestParam("title") String title,
                                                           @RequestParam("description") String description,
                                                           @RequestParam("userId") Long userId,
                                                           @RequestParam(value = "tags", required = false) List<String> tags,
-                                                          @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+                                                          @RequestPart(value = "images", required = false) List<MultipartFile> images) {
 
         PostRequest request = new PostRequest();
         request.setTitle(title);
