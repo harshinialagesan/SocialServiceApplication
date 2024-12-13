@@ -41,28 +41,28 @@ public class LikeServiceImplementation implements LikeService {
 
     @Override
     public ResponseEntity<ApiResponse<Object>> likeOnPost(Long postId, Long userId) {
-        Optional<Post> optionalPost = postRepository.findById(postId);
-        if (optionalPost.isEmpty()) {
+        Optional<Post> post = postRepository.findById(postId);
+        if (post.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
         }
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isEmpty()) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
         }
 
-        Post post = optionalPost.get();
-        User user = optionalUser.get();
-        Optional<Likes> existingLike = likeRepository.findByPostIdAndUserId(post, user);
+        Post post1 = post.get();
+        User user1 = user.get();
+        Optional<Likes> existingLike = likeRepository.findByPostIdAndUserId(post1, user1);
 
         if (existingLike.isPresent()) {
             likeRepository.delete(existingLike.get());
             return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_UNLIKED_SUCCESSFULLY));
         } else {
             Likes like = new Likes();
-            like.setPostId(post);
-            like.setUserId(user);
+            like.setPostId(post1);
+            like.setUserId(user1);
             likeRepository.save(like);
 
             return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_LIKED_SUCCESSFULLY));
@@ -72,13 +72,13 @@ public class LikeServiceImplementation implements LikeService {
     @Override
     public ResponseEntity<ApiResponse<Object>> getAllPostsLikedByUser(Long userId, int page, int size, String sortBy) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "createdAt" : sortBy));
-        Page<Likes> likedPostsPage = likeRepository.findByUserId_Id(userId, pageable);
+        Page<Likes> likedPosts = likeRepository.findByUserId_Id(userId, pageable);
 
-        if (likedPostsPage.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "No Post Found For The User"));
+        if (likedPosts.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "No liked Post Found For The User"));
         }
 
-        List<Post> posts = likedPostsPage.stream().map(Likes::getPostId).toList();
+        List<Post> posts = likedPosts.stream().map(Likes::getPostId).toList();
 
         List<GetAllPostResponse> postResponses = posts.stream()
                 .map(this::mapPostToResponses)
@@ -86,10 +86,10 @@ public class LikeServiceImplementation implements LikeService {
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("countOfLikedPosts", likeRepository.countByUserId_Id(userId));
-        responseData.put("totalPosts", likedPostsPage.getTotalElements());
-        responseData.put("totalPages", likedPostsPage.getTotalPages());
-        responseData.put("currentPage", likedPostsPage.getNumber());
-        responseData.put("pageSize", likedPostsPage.getSize());
+        responseData.put("totalPosts", likedPosts.getTotalElements());
+        responseData.put("totalPages", likedPosts.getTotalPages());
+        responseData.put("currentPage", likedPosts.getNumber());
+        responseData.put("pageSize", likedPosts.getSize());
         responseData.put("posts", postResponses);
 
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), responseData));

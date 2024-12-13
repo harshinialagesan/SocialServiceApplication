@@ -91,7 +91,7 @@ public class UserServiceImplementation implements UserService {
 
         String subject = "Welcome to SSA Platform!";
         String message = "Hello " + request.getUserName() + ",\n\n"
-                + "Thank you for registering on our platform. We're excited to have you on board!";
+                + "Thank you for registering on our platform. We're excited to have you on board!" + "\n\n"+ "Happy Posting";
         emailService.sendWelcomeEmail(request.getEmail(), subject, message);
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), USER_CREATED_SUCCESSFULLY_A_WELCOME_EMAIL_HAS_BEEN_SENT));
     }
@@ -140,14 +140,25 @@ public class UserServiceImplementation implements UserService {
     public ResponseEntity<ApiResponse<Object>> updateUser(Long userId, UserUpdateRequest request) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
         if (request.getUserName() != null && !request.getUserName().isBlank()) {
-            user.setUserName(request.getUserName());
-        }
-
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (userRepository.existsByUserEmailAndIdNot(request.getEmail(), userId)) {
-                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Email already exist for this user"));
+            if (!user.getUserName().equalsIgnoreCase(request.getUserName())) {
+                if (userRepository.existsByUserNameAndIdNot(request.getUserName(), userId)) {
+                    return ResponseEntity.badRequest()
+                            .body(new ApiResponse<>(StatusConstants.invalid(), "Username already exists for another user"));
+                }
+                user.setUserName(request.getUserName());
             }
-            user.setUserEmail(request.getEmail());
+        }
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (!user.getUserEmail().equalsIgnoreCase(request.getEmail())) {
+                if (userRepository.existsByUserEmailAndIdNot(request.getEmail(), userId)) {
+                    return ResponseEntity.badRequest()
+                            .body(new ApiResponse<>(StatusConstants.invalid(), "Email already exists for another user"));
+                }
+                user.setUserEmail(request.getEmail());
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse<>(StatusConstants.invalid(), "The email is already taken by this user"));
+            }
         }
         userRepository.save(user);
 
