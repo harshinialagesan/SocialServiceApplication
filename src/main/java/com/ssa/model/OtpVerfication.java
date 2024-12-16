@@ -30,4 +30,8 @@ public class OtpVerfication {
 
     @Column(name = "verified")
     private Integer verified;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
 }

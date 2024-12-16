@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class ShareServiceImplementation implements ShareService {
 
@@ -33,6 +35,10 @@ public class ShareServiceImplementation implements ShareService {
         Post post = postRepository.findById(sharePostRequest.getPostId()).orElseThrow(() -> new DataNotFoundException("Post not found"));
 
         User user = userRepository.findById(sharePostRequest.getUserId()).orElseThrow(() -> new DataNotFoundException("User not found"));
+        Optional<Share> existingShare = shareRepository.findByPostIdAndUserId(post, user);
+        if (existingShare.isPresent()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "You have already shared this post"));
+        }
         Share share = new Share();
         share.setPostId(post);
         share.setUserId(user);

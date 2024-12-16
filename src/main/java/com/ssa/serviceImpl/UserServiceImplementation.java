@@ -1,5 +1,6 @@
 package com.ssa.serviceImpl;
 
+import com.ssa.config.Token.JwtUtil;
 import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
@@ -37,6 +38,7 @@ public class UserServiceImplementation implements UserService {
     public static final String PASSWORD_AND_CONFIRM_PASSWORD_DO_NOT_MATCH = "Password and Confirm Password do not match";
     public static final String USER_WITH_THIS_EMAIL_ALREADY_EXISTS = "User with this email already exists";
     public static final String USER_CREATED_SUCCESSFULLY_A_WELCOME_EMAIL_HAS_BEEN_SENT = "User created successfully. A welcome email has been sent.";
+    private static final String USER_WITH_THIS_USERNAME_ALREADY_EXISTS = "User with this UserName already exists";
 
     @Autowired
     UserRepository userRepository;
@@ -55,17 +57,18 @@ public class UserServiceImplementation implements UserService {
     @Override
     public ResponseEntity<ApiResponse<Object>> getLoginDetails(LoginRequest request) {
 
-        User user = userRepository.findByUserEmail(request.getEmail())
-                .orElseThrow(() -> new DataNotFoundException("Invalid User"));
+        User user = userRepository.findByUserEmail(request.getEmail()).orElseThrow(() -> new DataNotFoundException("Invalid User"));
 
         boolean passwordMatches = bCryptPE.matches(request.getPassword(), user.getUserPassword());
         if (!passwordMatches) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(
-                    StatusConstants.invalid(), "Invalid email or password."));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Invalid email or password."));
         }
+        String token = JwtUtil.generateToken(user.getUserEmail());
+
         LoginResponse loginResponse = new LoginResponse();
         loginResponse.setUserId(user.getId());
         loginResponse.setMessage("Valid User");
+        loginResponse.setToken(token);
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), loginResponse));
     }
 
@@ -73,13 +76,14 @@ public class UserServiceImplementation implements UserService {
     @Override
     public ResponseEntity<ApiResponse<Object>> createUser(UserRequest request) {
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(
-                    StatusConstants.invalid(), PASSWORD_AND_CONFIRM_PASSWORD_DO_NOT_MATCH));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), PASSWORD_AND_CONFIRM_PASSWORD_DO_NOT_MATCH));
         }
 
         if (userRepository.existsByUserEmail(request.getEmail())) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(
-                    StatusConstants.invalid(), USER_WITH_THIS_EMAIL_ALREADY_EXISTS));
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_WITH_THIS_EMAIL_ALREADY_EXISTS));
+        }
+        if (userRepository.existsByUserName(request.getUserName())) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_WITH_THIS_USERNAME_ALREADY_EXISTS));
         }
         User user = new User();
         user.setUserName(request.getUserName());
@@ -98,7 +102,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public void sendOtpForPasswordReset(String email) {
-        userRepository.findByUserEmail(email).orElseThrow(() -> new RuntimeException("User not found with this email"));
+        User user = userRepository.findByUserEmail(email).orElseThrow(() -> new RuntimeException("User not found with this email"));
 
         String otp = String.valueOf(100000 + new Random().nextInt(900000));
         OtpVerfication otpVerification = new OtpVerfication();
@@ -106,6 +110,7 @@ public class UserServiceImplementation implements UserService {
         otpVerification.setOtp(otp);
         otpVerification.setExpirationTime(LocalDateTime.now().plusSeconds(60));
         otpVerification.setVerified(0);
+        otpVerification.setUser(user);
         otpRepository.save(otpVerification);
 
         String subject = "Reset Password OTP";

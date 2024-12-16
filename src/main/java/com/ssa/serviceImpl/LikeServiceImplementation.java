@@ -7,6 +7,7 @@ import com.ssa.repository.PostRepository;
 import com.ssa.repository.ShareRepository;
 import com.ssa.repository.UserRepository;
 import com.ssa.response.ApiResponse;
+import com.ssa.response.ApiResponse1;
 import com.ssa.response.GetAllPostResponse;
 import com.ssa.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,32 +41,33 @@ public class LikeServiceImplementation implements LikeService {
 
 
     @Override
-    public ResponseEntity<ApiResponse<Object>> likeOnPost(Long postId, Long userId) {
+    public ResponseEntity<ApiResponse1<Object>> likeOnPost(Long postId, Long userId) {
         Optional<Post> post = postRepository.findById(postId);
         if (post.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
+            return ResponseEntity.badRequest().body(new ApiResponse1<>(StatusConstants.invalid(), POST_NOT_FOUND));
         }
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
+                    .body(new ApiResponse1<>(StatusConstants.invalid(), USER_NOT_FOUND));
         }
 
         Post post1 = post.get();
         User user1 = user.get();
         Optional<Likes> existingLike = likeRepository.findByPostIdAndUserId(post1, user1);
-
+        Boolean isLiked;
         if (existingLike.isPresent()) {
             likeRepository.delete(existingLike.get());
-            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_UNLIKED_SUCCESSFULLY));
+            isLiked = false;
+            return ResponseEntity.ok(new ApiResponse1<>(StatusConstants.success(), POST_UNLIKED_SUCCESSFULLY, isLiked));
         } else {
             Likes like = new Likes();
             like.setPostId(post1);
             like.setUserId(user1);
             likeRepository.save(like);
 
-            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_LIKED_SUCCESSFULLY));
+            isLiked = true;
+            return ResponseEntity.ok(new ApiResponse1<>(StatusConstants.success(), POST_LIKED_SUCCESSFULLY,Boolean.valueOf(isLiked)));
         }
     }
 

@@ -1,6 +1,7 @@
 package com.ssa.controller;
 
 import com.ssa.response.ApiResponse;
+import com.ssa.response.ApiResponse1;
 import com.ssa.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,7 @@ public class LikesController {
     LikeService likeService;
 
     @PostMapping("/post/{postId}")
-    public ResponseEntity<ApiResponse<Object>> likeOnPost(@PathVariable Long postId, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse1<Object>> likeOnPost(@PathVariable Long postId, @RequestParam Long userId) {
         return likeService.likeOnPost(postId, userId);
     }
 
