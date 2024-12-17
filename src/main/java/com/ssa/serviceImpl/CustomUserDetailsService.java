@@ -1,5 +1,6 @@
 package com.ssa.serviceImpl;
 
+import com.ssa.config.CustomUserDetails;
 import com.ssa.model.User;
 import com.ssa.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

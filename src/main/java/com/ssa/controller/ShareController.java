@@ -2,6 +2,8 @@ package com.ssa.controller;
 
 import com.ssa.request.SharePostRequest;
 import com.ssa.response.ApiResponse;
+import com.ssa.response.PagedResponse;
+import com.ssa.response.SharePostResponse;
 import com.ssa.service.ShareService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,5 +24,12 @@ public class ShareController {
         return shareService.sharePost(sharePostRequest);
     }
 
-
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<PagedResponse<SharePostResponse>>> getAllSharedPostsByUser(@PathVariable Long userId,
+                                                                                                 @RequestParam(defaultValue = "0") int page,
+                                                                                                 @RequestParam(defaultValue = "10") int size,
+                                                                                                 @RequestParam(required = false) String sortBy) {
+        ApiResponse<PagedResponse<SharePostResponse>> response = shareService.getAllSharedPostsByUser(userId, page, size, sortBy);
+        return ResponseEntity.ok(response);
+    }
 }

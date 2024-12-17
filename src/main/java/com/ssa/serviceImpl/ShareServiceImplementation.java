@@ -7,15 +7,17 @@ import com.ssa.repository.PostRepository;
 import com.ssa.repository.ShareRepository;
 import com.ssa.repository.UserRepository;
 import com.ssa.request.SharePostRequest;
-import com.ssa.response.ApiResponse;
-import com.ssa.response.GetAllPostResponse;
-import com.ssa.response.SharePostResponse;
-import com.ssa.response.UserDto;
+import com.ssa.response.*;
 import com.ssa.service.ShareService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -58,6 +60,38 @@ public class ShareServiceImplementation implements ShareService {
 
     }
 
+    @Override
+    public ApiResponse<PagedResponse<SharePostResponse>> getAllSharedPostsByUser(Long userId, int page, int size, String sortBy) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "sharedAt" : sortBy));
+
+        Page<Share> sharedPosts = shareRepository.findAllByUserId_Id(userId, pageable);
+
+        List<SharePostResponse> sharedPostResponses = sharedPosts.getContent().stream()
+                .map(this::mapSharedPostToResponse)
+                .toList();
+        PagedResponse<SharePostResponse> pagedResponse = new PagedResponse<>(
+                sharedPostResponses,
+                sharedPosts.getNumber(),
+                sharedPosts.getSize(),
+                sharedPosts.getTotalElements(),
+                sharedPosts.getTotalPages(),
+                sharedPosts.isLast()
+        );
+
+        return new ApiResponse<>(StatusConstants.success(), pagedResponse);
+    }
+    private SharePostResponse mapSharedPostToResponse(Share share) {
+        Post originalPost = share.getPostId();
+        User sharedByUser = share.getUserId();
+        SharePostResponse response = new SharePostResponse();
+        response.setId(originalPost.getId());
+        response.setOriginalPost(mapPostToResponses(originalPost));
+        response.setSharedBy(mapUserToDTO(sharedByUser));
+        response.setComment(share.getCommentOnShare());
+        response.setSharedAt(share.getSharedAt());
+
+        return response;
+    }
 
     private UserDto mapUserToDTO(User user) {
         UserDto res = new UserDto();

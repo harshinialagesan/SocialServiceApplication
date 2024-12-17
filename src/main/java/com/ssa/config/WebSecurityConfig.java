@@ -1,4 +1,4 @@
-    package com.ssa.config.Token;
+    package com.ssa.config;
     
     import org.springframework.context.annotation.Bean;
     import org.springframework.context.annotation.Configuration;
@@ -39,7 +39,8 @@
 //
 //            return http.build();
 //        }
-private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
         public WebSecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
             this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -49,7 +50,7 @@ private final JwtAuthenticationFilter jwtAuthenticationFilter;
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
             http.csrf(csrf -> csrf.disable())
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/user/login", "/user/create", "/").permitAll()
+                            .requestMatchers("/user/login", "/user/create", "/share/**").permitAll()
                             .requestMatchers("/user/**", "/post/**").permitAll()
                             .anyRequest().authenticated()
                     )

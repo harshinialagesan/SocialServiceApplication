@@ -1,4 +1,4 @@
-package com.ssa.config.Token;
+package com.ssa.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

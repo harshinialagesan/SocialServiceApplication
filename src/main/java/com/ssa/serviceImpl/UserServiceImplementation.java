@@ -1,6 +1,6 @@
 package com.ssa.serviceImpl;
 
-import com.ssa.config.Token.JwtUtil;
+import com.ssa.config.JwtUtil;
 import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;

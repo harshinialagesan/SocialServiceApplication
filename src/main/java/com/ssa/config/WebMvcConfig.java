@@ -1,4 +1,4 @@
-package com.ssa.config.Token;
+package com.ssa.config;
 
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;

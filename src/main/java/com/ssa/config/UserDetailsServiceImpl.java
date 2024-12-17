@@ -1,4 +1,4 @@
-package com.ssa.config.Token;
+package com.ssa.config;
 
 import com.ssa.model.User;
 import com.ssa.repository.UserRepository;
