@@ -54,23 +54,23 @@ public class UserServiceImplementation implements UserService {
 
     BCryptPasswordEncoder bCryptPE = new BCryptPasswordEncoder() ;
 
-    @Override
-    public ResponseEntity<ApiResponse<Object>> getLoginDetails(LoginRequest request) {
+        @Override
+        public ResponseEntity<ApiResponse<Object>> getLoginDetails(LoginRequest request) {
 
-        User user = userRepository.findByUserEmail(request.getEmail()).orElseThrow(() -> new DataNotFoundException("Invalid User"));
+            User user = userRepository.findByUserEmail(request.getEmail()).orElseThrow(() -> new DataNotFoundException("Invalid User"));
 
-        boolean passwordMatches = bCryptPE.matches(request.getPassword(), user.getUserPassword());
-        if (!passwordMatches) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Invalid email or password."));
+            boolean passwordMatches = bCryptPE.matches(request.getPassword(), user.getUserPassword());
+            if (!passwordMatches) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Invalid email or password."));
+            }
+            String token = JwtUtil.generateToken(user.getUserEmail(),user.getId());
+
+            LoginResponse loginResponse = new LoginResponse();
+            loginResponse.setUserId(user.getId());
+            loginResponse.setMessage("Valid User");
+            loginResponse.setToken(token);
+            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), loginResponse));
         }
-        String token = JwtUtil.generateToken(user.getUserEmail());
-
-        LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setUserId(user.getId());
-        loginResponse.setMessage("Valid User");
-        loginResponse.setToken(token);
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), loginResponse));
-    }
 
 
     @Override
@@ -120,8 +120,8 @@ public class UserServiceImplementation implements UserService {
     }
 
     @Override
-    public void verifyOtp(String otp) {
-        OtpVerfication otpVerification = otpRepository.findByOtp(otp).orElseThrow(() -> new DataNotFoundException("Invalid OTP"));
+    public void verifyOtp(String email, String otp) {
+        OtpVerfication otpVerification = otpRepository.findByEmailAndOtp(email,otp).orElseThrow(() -> new DataNotFoundException("Invalid OTP"));
 
         if (otpVerification.getExpirationTime().isBefore(LocalDateTime.now())) {
             throw new DataNotFoundException("OTP has expired");
@@ -239,6 +239,7 @@ public class UserServiceImplementation implements UserService {
                     .toList());
         }
         response.setCreatedAt(post.getCreatedAt());
+        response.setUpdatedAt(post.getUpdatedAt());
         response.setUserName(post.getUserId().getUserName());
         return response;
     }

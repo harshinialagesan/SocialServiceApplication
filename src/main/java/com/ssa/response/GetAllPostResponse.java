@@ -20,5 +20,6 @@ public class GetAllPostResponse {
     private int comments;
     private Long share;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private String userName;
 }

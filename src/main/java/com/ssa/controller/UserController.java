@@ -55,7 +55,7 @@ public class UserController {
 
     @PostMapping("/verify")
     public ResponseEntity<ApiResponse<Object>> verifyOtp(@RequestBody OtpRequest request) {
-        loginService.verifyOtp(request.getOtp());
+        loginService.verifyOtp(request.getEmail(),request.getOtp());
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "OTP verified successfully"));
     }
 

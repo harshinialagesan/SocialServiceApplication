@@ -48,8 +48,7 @@ public class LikeServiceImplementation implements LikeService {
         }
         Optional<User> user = userRepository.findById(userId);
         if (user.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body(new ApiResponse1<>(StatusConstants.invalid(), USER_NOT_FOUND));
+            return ResponseEntity.badRequest().body(new ApiResponse1<>(StatusConstants.invalid(), USER_NOT_FOUND));
         }
 
         Post post1 = post.get();
@@ -82,9 +81,7 @@ public class LikeServiceImplementation implements LikeService {
 
         List<Post> posts = likedPosts.stream().map(Likes::getPostId).toList();
 
-        List<GetAllPostResponse> postResponses = posts.stream()
-                .map(this::mapPostToResponses)
-                .toList();
+        List<GetAllPostResponse> postResponses = posts.stream().map(this::mapPostToResponses).toList();
 
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("countOfLikedPosts", likeRepository.countByUserId_Id(userId));

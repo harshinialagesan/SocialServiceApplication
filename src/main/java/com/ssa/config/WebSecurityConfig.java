@@ -18,7 +18,7 @@
 //            http
 //                    .csrf(csrf -> csrf.disable())
 //                    .authorizeRequests()
-//                    .requestMatchers("/user/login", "/user/create","/").permitAll()
+//                    .requestMatchers("/user/login", "/user/create","/share/**","/comment/**","/likes/**").permitAll()
 //                    .requestMatchers("/user/**").permitAll()
 //                    .requestMatchers("/post/**").permitAll()
 //                    .anyRequest().permitAll() ;
@@ -50,7 +50,7 @@
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
             http.csrf(csrf -> csrf.disable())
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/user/login", "/user/create", "/share/**").permitAll()
+                            .requestMatchers("/user/login", "/user/create", "/share/**","/comment/**","/likes/**").permitAll()
                             .requestMatchers("/user/**", "/post/**").permitAll()
                             .anyRequest().authenticated()
                     )

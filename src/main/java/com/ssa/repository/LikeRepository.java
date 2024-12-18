@@ -15,4 +15,6 @@ public interface LikeRepository extends JpaRepository<Likes,Long> {
     Page<Likes> findByUserId_Id(Long userId, Pageable pageable);
 
     long countByUserId_Id(Long userId);
+
+    Page<Likes> findByPostId(Post post, Pageable pageable);
 }

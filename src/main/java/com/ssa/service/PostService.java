@@ -3,7 +3,9 @@ package com.ssa.service;
 import com.ssa.request.PostRequest;
 import com.ssa.response.ApiResponse;
 import com.ssa.response.GetAllPostResponse;
+import com.ssa.response.LikeResponse;
 import com.ssa.response.PagedResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,4 +26,6 @@ public interface PostService {
 
 
     ResponseEntity<ApiResponse<Object>> createPosts(PostRequest request, List<MultipartFile> images);
+
+    Page<LikeResponse> getAllLikes(Long postId, int page, int size);
 }

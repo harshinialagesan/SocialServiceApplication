@@ -4,15 +4,14 @@ import com.ssa.constant.Constants;
 import com.ssa.constant.StatusConstants;
 import com.ssa.exceptions.DataNotFoundException;
 import com.ssa.model.*;
-import com.ssa.repository.PostRepository;
-import com.ssa.repository.ShareRepository;
-import com.ssa.repository.TagRepository;
-import com.ssa.repository.UserRepository;
+import com.ssa.repository.*;
 import com.ssa.request.PostRequest;
 import com.ssa.response.ApiResponse;
 import com.ssa.response.GetAllPostResponse;
+import com.ssa.response.LikeResponse;
 import com.ssa.response.PagedResponse;
 import com.ssa.service.PostService;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +36,7 @@ public class PostServiceImplementation implements PostService {
     public static final String POST_NOT_FOUND = "Post not found";
     public static final String USER_NOT_FOUND1 = USER_NOT_FOUND;
     public static final String POST_UPDATED_SUCCESSFULLY = "Post Updated Successfully";
+    public static final String POST_CREATED_SUCCESSFULLY = "Post Created Successfully";
     @Autowired
     UserRepository userRepository;
     @Autowired
@@ -45,6 +45,8 @@ public class PostServiceImplementation implements PostService {
     PostRepository postRepository;
     @Autowired
     ShareRepository shareRepository;
+    @Autowired
+    LikeRepository likeRepository;
     @Autowired
     S3Service s3Service;
 
@@ -100,7 +102,7 @@ public class PostServiceImplementation implements PostService {
         postRepository.save(post);
 
 
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Post Created Successfully"));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_CREATED_SUCCESSFULLY));
     }
 
     @Override
@@ -264,6 +266,7 @@ public class PostServiceImplementation implements PostService {
     }
 
     @Override
+    @Transactional
     public ResponseEntity<ApiResponse<Object>> createPosts(PostRequest request, List<MultipartFile> images) {
 
         Optional<User> user = userRepository.findById(request.getUserId());
@@ -321,8 +324,22 @@ public class PostServiceImplementation implements PostService {
 
         postRepository.save(post);
 
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Post Created Successfully"));
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_CREATED_SUCCESSFULLY));
+    }
 
+    @Override
+    public Page<LikeResponse> getAllLikes(Long postId, int page, int size) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new DataNotFoundException("Post not found with ID: " + postId));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Likes> likes = likeRepository.findByPostId(post, pageable);
+
+        return likes.map(like -> new LikeResponse(
+                like.getUserId().getId(),
+                like.getUserId().getUserName(),
+                like.getCreatedAt()
+        ));
     }
 
     private GetAllPostResponse mapPostToResponses(Post post) {

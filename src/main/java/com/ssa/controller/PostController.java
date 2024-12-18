@@ -1,12 +1,12 @@
 package com.ssa.controller;
 
+import com.ssa.constant.StatusConstants;
 import com.ssa.request.PostRequest;
-import com.ssa.response.ApiResponse;
-import com.ssa.response.GetAllPostResponse;
-import com.ssa.response.PagedResponse;
+import com.ssa.response.*;
 import com.ssa.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -75,6 +75,14 @@ public class PostController {
                                                                        @RequestParam(name = "sort_by",defaultValue = "createdAt") String sortBy) {
         ApiResponse<PagedResponse<GetAllPostResponse>> response = postService.searchPosts(title, tags, page, size, sortBy);
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/{postId}")
+    public ResponseEntity<ApiResponse1<Page<LikeResponse>>> getAllLikes(
+            @PathVariable Long postId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<LikeResponse> likes = postService.getAllLikes(postId, page, size);
+        return ResponseEntity.ok(new ApiResponse1<>(StatusConstants.success(), "Likes fetched successfully", likes));
     }
 
 }
