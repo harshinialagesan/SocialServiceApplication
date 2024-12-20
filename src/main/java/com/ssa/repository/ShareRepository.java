@@ -1,5 +1,6 @@
 package com.ssa.repository;
 
+import com.ssa.model.Likes;
 import com.ssa.model.Post;
 import com.ssa.model.Share;
 import com.ssa.model.User;
@@ -15,4 +16,6 @@ public interface ShareRepository extends JpaRepository<Share,Long> {
     Optional<Share> findByPostIdAndUserId(Post post, User user);
 
     Page<Share> findAllByUserId_Id(Long userId, Pageable pageable);
+
+    Page<Share> findByPostId(Post post, Pageable pageable);
 }

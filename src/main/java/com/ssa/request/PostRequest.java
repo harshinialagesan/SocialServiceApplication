@@ -18,8 +18,6 @@ public class PostRequest {
 
     @NotBlank(message = "Description is required")
     private String description;
-
-    @NotNull(message = "User ID is required")
     private Long userId;
     private List<String> tagName;
     private List<String> imageUrls;

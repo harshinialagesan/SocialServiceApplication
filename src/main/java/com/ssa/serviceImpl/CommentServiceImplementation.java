@@ -131,6 +131,7 @@ public class CommentServiceImplementation implements CommentService {
         response.setPostId(comment.getPostId().getId());
         response.setCommentId(comment.getId());
         response.setCreatedAt(comment.getCreatedAt());
+        response.setUpdatedAt(comment.getUpdatedAt());
         response.setIsActive(comment.getIsActive());
         return response;
     }

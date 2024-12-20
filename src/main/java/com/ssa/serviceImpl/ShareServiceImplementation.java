@@ -80,6 +80,22 @@ public class ShareServiceImplementation implements ShareService {
 
         return new ApiResponse<>(StatusConstants.success(), pagedResponse);
     }
+
+    @Override
+    public Page<ShareResponse> getSharedUserOfPost(Long postId, int page, int size) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new DataNotFoundException("Post not found with ID: " + postId));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Share> shares = shareRepository.findByPostId(post, pageable);
+
+        return shares.map(share -> new ShareResponse(
+                share.getUserId().getId(),
+                share.getUserId().getUserName(),
+                share.getSharedAt()
+        ));
+    }
+
     private SharePostResponse mapSharedPostToResponse(Share share) {
         Post originalPost = share.getPostId();
         User sharedByUser = share.getUserId();

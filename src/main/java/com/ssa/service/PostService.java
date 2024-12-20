@@ -14,7 +14,7 @@ import java.util.List;
 public interface PostService {
     ResponseEntity<ApiResponse<Object>> createPost(PostRequest postRequest);
 
-    ResponseEntity<ApiResponse<Object>> updatePost(Long postId, PostRequest postRequest);
+    ResponseEntity<ApiResponse<Object>> updatePost(Long postId, PostRequest postRequest,  List<MultipartFile> images);
 
     ResponseEntity<ApiResponse<Object>> deletePost(Long postId, Long userId);
 
@@ -28,4 +28,7 @@ public interface PostService {
     ResponseEntity<ApiResponse<Object>> createPosts(PostRequest request, List<MultipartFile> images);
 
     Page<LikeResponse> getAllLikes(Long postId, int page, int size);
+
+    ResponseEntity<ApiResponse<Object>> deleteImageFromPost(Long postId, Long imageId);
+
 }

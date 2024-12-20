@@ -15,6 +15,7 @@ public class CommentResponse {
     private String userName;
     private String comment;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private Integer isActive;
 
 }

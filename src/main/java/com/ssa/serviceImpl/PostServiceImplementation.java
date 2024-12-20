@@ -18,14 +18,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,6 +48,8 @@ public class PostServiceImplementation implements PostService {
     ShareRepository shareRepository;
     @Autowired
     LikeRepository likeRepository;
+    @Autowired
+    ImageRepository imageRepository;
     @Autowired
     S3Service s3Service;
 
@@ -105,69 +108,117 @@ public class PostServiceImplementation implements PostService {
         return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_CREATED_SUCCESSFULLY));
     }
 
-    @Override
-    public ResponseEntity<ApiResponse<Object>> updatePost(Long postId, PostRequest postRequest) {
-        Optional<Post> existingPost = postRepository.findById(postId);
+        @Override
+        public ResponseEntity<ApiResponse<Object>> updatePost(Long postId, PostRequest postRequest,List<MultipartFile> imagesList) {
+            Optional<Post> existingPost = postRepository.findById(postId);
 
-        if (existingPost.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
-        }
+            if (existingPost.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
+            }
 
-        Post post = existingPost.get();
-        Optional<User> user = userRepository.findById(postRequest.getUserId());
-        if (user.isEmpty()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
-        }
-        if (!post.getUserId().getId().equals(postRequest.getUserId())) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "You can only update your own posts"));
-        }
-        if (postRequest.getTitle() != null && !postRequest.getTitle().isEmpty()) {
-            post.setTitle(postRequest.getTitle());
-        }
-        if (postRequest.getDescription() != null && !postRequest.getDescription().isEmpty()) {
-            post.setDescription(postRequest.getDescription());
-        }
-        List<String> tagNames = postRequest.getTagName();
-        List<Tag> newTags = new ArrayList<>();
+            Post post = existingPost.get();
+            Optional<User> user = userRepository.findById(postRequest.getUserId());
+            if (user.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), USER_NOT_FOUND));
+            }
+            if (!post.getUserId().getId().equals(postRequest.getUserId())) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "You can only update your own posts"));
+            }
+            if (postRequest.getTitle() != null && !postRequest.getTitle().isEmpty()) {
+                post.setTitle(postRequest.getTitle());
+            }
+            if (postRequest.getDescription() != null && !postRequest.getDescription().isEmpty()) {
+                post.setDescription(postRequest.getDescription());
+            }
+            List<String> tagNames = postRequest.getTagName();
+            List<Tag> newTags = new ArrayList<>();
 
-        for (String tagName : tagNames) {
-            tagName = tagName.trim();
+            for (String tagName : tagNames) {
+                tagName = tagName.trim();
 
-            String[] parts = tagName.split("#");
-            for (int i = 1; i < parts.length; i++) {
-                String part = parts[i].trim();
-                if (part.isEmpty()) {
-                    return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should have a name after '#' "));
+                String[] parts = tagName.split("#");
+                for (int i = 1; i < parts.length; i++) {
+                    String part = parts[i].trim();
+                    if (part.isEmpty()) {
+                        return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should have a name after '#' "));
+                    }
+                    tagName = "#" + part;
                 }
-                tagName = "#" + part;
+
+                if (!tagName.startsWith("#") || tagName.length() < 2) {
+                    return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should start with '#' and be at least 2 characters long."));
+                }
+                Tag tag = tagRepository.findByName(tagName).orElse(null);
+                if (tag == null) {
+                    tag = new Tag();
+                    tag.setName(tagName);
+                    tag.setUserid(user.get());
+                    tag = tagRepository.save(tag);
+                }
+                newTags.add(tag);
+            }
+            List<Tag> tagsToRemove = post.getTags().stream().filter(tag -> !newTags.contains(tag)).collect(Collectors.toList());
+            for (Tag tagToRemove : tagsToRemove) {
+                post.getTags().remove(tagToRemove);
+                boolean isTagUsedElsewhere = postRepository.existsByTagsContains(tagToRemove);
+
+                if (!isTagUsedElsewhere) {
+                    tagRepository.delete(tagToRemove);
+                }
+            }
+            post.getTags().addAll(newTags);
+            List<Images> imageList = post.getImage();
+            if (imagesList != null && !imagesList.isEmpty()) {
+                // 1. Validate number of images
+                if (imagesList.size() + imagesList.size() > 5) {
+                    return ResponseEntity.badRequest()
+                            .body(new ApiResponse<>(StatusConstants.invalid(), "You can upload a maximum of 5 images."));
+                }
+
+                // 2. Collect new image URLs by uploading the files
+                Set<String> newImageUrls = new HashSet<>();
+                for (MultipartFile file : imagesList) {
+                    try {
+                        String imageUrl = s3Service.uploadFile(file); // Upload each new image to S3
+                        newImageUrls.add(imageUrl);
+                    } catch (IOException e) {
+                        return ResponseEntity.badRequest()
+                                .body(new ApiResponse<>(StatusConstants.invalid(), "Error uploading image: " + e.getMessage()));
+                    }
+                }
+
+                // 3. Remove images that are not in the new list and delete them from S3
+                List<Images> imagesToRemove = new ArrayList<>();
+                for (Images existingImage : imageList) {
+                    if (!newImageUrls.contains(existingImage.getImageUrl())) {
+                        try {
+                            s3Service.deleteFile(existingImage.getImageUrl()); // Delete image from S3
+                            imagesToRemove.add(existingImage); // Mark for removal from the database
+                        } catch (Exception e) {
+                            return ResponseEntity.badRequest()
+                                    .body(new ApiResponse<>(StatusConstants.invalid(), "Error deleting image: " + e.getMessage()));
+                        }
+                    }
+                }
+
+                // Remove the images from the database
+                imageRepository.deleteAll(imagesToRemove);
+                imageList.removeAll(imagesToRemove);
+
+                // 4. Add new images to the database
+                for (String newImageUrl : newImageUrls) {
+                    Images newImage = new Images();
+                    newImage.setImageUrl(newImageUrl);
+                    newImage.setPostId(post);
+                    imageList.add(newImage);
+                }
             }
 
-            if (!tagName.startsWith("#") || tagName.length() < 2) {
-                return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Each tag should start with '#' and be at least 2 characters long."));
-            }
-            Tag tag = tagRepository.findByName(tagName).orElse(null);
-            if (tag == null) {
-                tag = new Tag();
-                tag.setName(tagName);
-                tag.setUserid(user.get());
-                tag = tagRepository.save(tag);
-            }
-            newTags.add(tag);
+
+            postRepository.save(post);
+
+            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_UPDATED_SUCCESSFULLY));
         }
-        List<Tag> tagsToRemove = post.getTags().stream().filter(tag -> !newTags.contains(tag)).collect(Collectors.toList());
-        for (Tag tagToRemove : tagsToRemove) {
-            post.getTags().remove(tagToRemove);
-            boolean isTagUsedElsewhere = postRepository.existsByTagsContains(tagToRemove);
-
-            if (!isTagUsedElsewhere) {
-                tagRepository.delete(tagToRemove);
-            }
-        }
-        post.getTags().addAll(newTags);
-        postRepository.save(post);
-
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), POST_UPDATED_SUCCESSFULLY));
-    }
 
     @Override
     public ResponseEntity<ApiResponse<Object>> deletePost(Long postId, Long userId) {
@@ -287,6 +338,10 @@ public class PostServiceImplementation implements PostService {
         post.setUserId(user1);
         post.setIsActive(Constants.IS_ACTIVE);
 
+        if (images != null && images.size() > 5) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "You can upload a maximum of 5 images."));
+        }
+
         List<String> tagNames = request.getTagName();
         List<Tag> tags = new ArrayList<>();
         if (tagNames != null && !tagNames.isEmpty()) {
@@ -340,6 +395,40 @@ public class PostServiceImplementation implements PostService {
                 like.getUserId().getUserName(),
                 like.getCreatedAt()
         ));
+    }
+
+    @Transactional
+    @Override
+    public ResponseEntity<ApiResponse<Object>> deleteImageFromPost(Long postId, Long imageId) {
+        Optional<Post> post = postRepository.findById(postId);
+        if (post.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
+        }
+        Post post1 = post.get();
+        Optional<Images> imageOptional = post1.getImage().stream()
+                .filter(image -> image.getId().equals(imageId))
+                .findFirst();
+
+        if (imageOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), "Image not found"));
+        }
+
+        Images imageToDelete = imageOptional.get();
+
+        try {
+            s3Service.deleteFile(imageToDelete.getImageUrl());
+            imageRepository.delete(imageToDelete);
+            post1.getImage().remove(imageToDelete);
+            postRepository.save(post1);
+
+
+            return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), "Image deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(StatusConstants.invalid(), "Error deleting image: " + e.getMessage()));
+        }
+
+
     }
 
     private GetAllPostResponse mapPostToResponses(Post post) {

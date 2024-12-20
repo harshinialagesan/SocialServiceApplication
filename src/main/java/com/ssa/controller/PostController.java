@@ -45,8 +45,8 @@ public class PostController {
     }
 
     @PatchMapping("/update/{postId}")
-    public ResponseEntity<ApiResponse<Object>> updatePost(@PathVariable Long postId,@Valid @RequestBody PostRequest postRequest) {
-        return postService.updatePost(postId, postRequest);
+    public ResponseEntity<ApiResponse<Object>> updatePost(@PathVariable Long postId,@Valid @RequestBody PostRequest postRequest, @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return postService.updatePost(postId, postRequest,images);
     }
 
     @DeleteMapping("/{postId}")
@@ -77,12 +77,15 @@ public class PostController {
         return ResponseEntity.ok(response);
     }
     @GetMapping("/{postId}")
-    public ResponseEntity<ApiResponse1<Page<LikeResponse>>> getAllLikes(
-            @PathVariable Long postId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<ApiResponse1<Page<LikeResponse>>> getAllLikes(@PathVariable Long postId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
         Page<LikeResponse> likes = postService.getAllLikes(postId, page, size);
         return ResponseEntity.ok(new ApiResponse1<>(StatusConstants.success(), "Likes fetched successfully", likes));
     }
+
+    @DeleteMapping("/{postId}/images/{imageId}")
+    public ResponseEntity<ApiResponse<Object>> deletePostImage(@PathVariable Long postId, @PathVariable Long imageId) {
+        return postService.deleteImageFromPost(postId, imageId);
+    }
+
 
 }

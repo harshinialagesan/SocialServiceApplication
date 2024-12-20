@@ -98,7 +98,6 @@ public class LikeServiceImplementation implements LikeService {
     private GetAllPostResponse mapPostToResponses(Post post) {
         GetAllPostResponse response = new GetAllPostResponse();
         response.setId(post.getId());
-        response.setUserId(post.getUserId().getId());
         response.setTitle(post.getTitle());
         response.setDescription(post.getDescription());
         response.setTags(post.getTags().stream().map(Tag::getName).toList());
