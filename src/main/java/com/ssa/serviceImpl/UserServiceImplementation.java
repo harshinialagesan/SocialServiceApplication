@@ -102,7 +102,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public void sendOtpForPasswordReset(String email) {
-        User user = userRepository.findByUserEmail(email).orElseThrow(() -> new RuntimeException("User not found with this email"));
+        User user = userRepository.findByUserEmail(email).orElseThrow(() -> new DataNotFoundException("User not found with this email"));
 
         String otp = String.valueOf(100000 + new Random().nextInt(900000));
         OtpVerfication otpVerification = new OtpVerfication();

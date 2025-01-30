@@ -12,5 +12,5 @@ public interface CommentService {
 
     ResponseEntity<ApiResponse<Object>> deleteComment(Long postId, Long commentId, Long userId);
 
-    ResponseEntity<ApiResponse<Object>> getCommentsByPost(Long postId);
+    ResponseEntity<ApiResponse<Object>> getCommentsByPost(Long postId,int page, int size, String sortBy);
 }

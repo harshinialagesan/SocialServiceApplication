@@ -12,12 +12,18 @@ import com.ssa.response.ApiResponse;
 import com.ssa.response.CommentResponse;
 import com.ssa.service.CommentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -112,14 +118,23 @@ public class CommentServiceImplementation implements CommentService {
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Object>> getCommentsByPost(Long postId) {
+    public ResponseEntity<ApiResponse<Object>> getCommentsByPost(Long postId,int page,int size,String sortBy) {
         Optional<Post> post = postRepository.findById(postId);
         if (post.isEmpty()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(StatusConstants.invalid(), POST_NOT_FOUND));
         }
-        List<Comment> comments = commentRepository.findByPostId(post.get());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc(sortBy)));
+
+        Page<Comment> comments = commentRepository.findByPostId(post.get(),pageable);
         List<CommentResponse> commentResponses = comments.stream().map(this::mapToCommentResponse).collect(Collectors.toList());
-        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), commentResponses));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("comments", commentResponses);
+        response.put("currentPage", comments.getNumber());
+        response.put("totalItems", comments.getTotalElements());
+        response.put("totalPages", comments.getTotalPages());
+
+        return ResponseEntity.ok(new ApiResponse<>(StatusConstants.success(), response));
     }
 
 

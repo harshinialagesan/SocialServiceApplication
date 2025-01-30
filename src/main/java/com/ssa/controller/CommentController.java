@@ -33,7 +33,9 @@ public class CommentController {
     }
 
     @GetMapping("/post/{postId}")
-    public ResponseEntity<ApiResponse<Object>> getCommentsByPost(@PathVariable Long postId) {
-        return commentService.getCommentsByPost(postId);
+    public ResponseEntity<ApiResponse<Object>> getCommentsByPost(@PathVariable Long postId,  @RequestParam(name = "page_no",defaultValue = "0") int page,
+                                                                 @RequestParam(name = "page_size",defaultValue = "10") int size,
+                                                                 @RequestParam(name = "sort_by",defaultValue = "createdAt") String sortBy) {
+        return commentService.getCommentsByPost(postId,page,size,sortBy);
     }
 }
