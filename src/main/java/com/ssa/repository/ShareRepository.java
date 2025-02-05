@@ -18,4 +18,6 @@ public interface ShareRepository extends JpaRepository<Share,Long> {
     Page<Share> findAllByUserId_Id(Long userId, Pageable pageable);
 
     Page<Share> findByPostId(Post post, Pageable pageable);
+
+    Page<Share> findAllByUserId_IdAndPostId_IsActive(Long userId, Integer isActive, Pageable pageable);
 }

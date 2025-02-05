@@ -64,7 +64,7 @@ public class ShareServiceImplementation implements ShareService {
     public ApiResponse<PagedResponse<SharePostResponse>> getAllSharedPostsByUser(Long userId, int page, int size, String sortBy) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy == null ? "sharedAt" : sortBy));
 
-        Page<Share> sharedPosts = shareRepository.findAllByUserId_Id(userId, pageable);
+        Page<Share> sharedPosts = shareRepository.findAllByUserId_IdAndPostId_IsActive(userId,1, pageable);
 
         List<SharePostResponse> sharedPostResponses = sharedPosts.getContent().stream()
                 .map(this::mapSharedPostToResponse)

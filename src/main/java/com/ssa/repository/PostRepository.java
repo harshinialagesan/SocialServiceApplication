@@ -12,11 +12,13 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
     boolean existsByTagsContains(Tag tagToRemove);
 
-    Page<Post> findByTags_IdIn(List<Long> tagIds, Pageable pageable);
+    Page<Post> findByTags_IdInAndIsActive(List<Long> tagIds, Integer isActive,Pageable pageable);
 
     Page<Post> findAll(Specification<Post> combinedSpecification, Pageable pageable);
 
-    Page<Post> findByTitleContainingIgnoreCaseAndTags_IdIn(String title, List<Long> tagId, Pageable pageable);
+    Page<Post> findByTitleContainingIgnoreCaseAndTags_IdInAndIsActive(String title, List<Long> tagId,Integer isActive, Pageable pageable);
 
-    Page<Post> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+    Page<Post> findByTitleContainingIgnoreCaseAndIsActive(String title,Integer isActive, Pageable pageable);
+
+    Page<Post> findAllByIsActive(Integer isActive,Pageable pageable);
 }

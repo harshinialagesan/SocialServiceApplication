@@ -294,14 +294,14 @@ public class PostServiceImplementation implements PostService {
             }
 
             if (title != null && !title.isEmpty()) {
-                posts = postRepository.findByTitleContainingIgnoreCaseAndTags_IdIn(title, tagId, pageable);
+                posts = postRepository.findByTitleContainingIgnoreCaseAndTags_IdInAndIsActive(title, tagId, 1,pageable);
             } else {
-                posts = postRepository.findByTags_IdIn(tagId, pageable);
+                posts = postRepository.findByTags_IdInAndIsActive(tagId,1, pageable);
             }
         } else if (title != null && !title.isEmpty()) {
-            posts = postRepository.findByTitleContainingIgnoreCase(title, pageable);
+            posts = postRepository.findByTitleContainingIgnoreCaseAndIsActive(title,1, pageable);
         } else {
-            posts = postRepository.findAll(pageable);
+            posts = postRepository.findAllByIsActive(1,pageable);
         }
         List<GetAllPostResponse> responses = posts.stream().map(this::mapPostToResponses).toList();
 
